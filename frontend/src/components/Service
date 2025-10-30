@@ -1,0 +1,187 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { checkServiceHealth } from '@/lib/service-health'
+import { Badge } from '@/components/ui/badge'
+import { AlertCircle, CheckCircle2, RefreshCw, XCircle } from 'lucide-react'
+
+interface ServiceStatus {
+  database: boolean
+  auth: boolean
+  storage: boolean
+  realtime: boolean
+  overall: 'healthy' | 'degraded' | 'down'
+  details: {
+    database?: string
+    auth?: string
+    storage?: string
+    realtime?: string
+  }
+  latency?: number
+  lastCheck?: Date
+}
+
+export function ServiceStatusBanner() {
+  const [status, setStatus] = useState<ServiceStatus | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [showDetails, setShowDetails] = useState(false)
+
+  const checkStatus = async () => {
+    setLoading(true)
+    try {
+      const health = await checkServiceHealth()
+      setStatus(health)
+    } catch (error) {
+      console.error('Failed to check service health:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    checkStatus()
+    // Check status every 30 seconds
+    const interval = setInterval(checkStatus, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  if (!status) {
+    return (
+      <Alert className="mb-4">
+        <RefreshCw className="h-4 w-4 animate-spin" />
+        <AlertDescription>
+          Checking service status...
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  // Don't show banner if everything is healthy
+  if (status.overall === 'healthy') {
+    return null
+  }
+
+  const getStatusConfig = () => {
+    switch (status.overall) {
+      case 'degraded':
+        return {
+          variant: 'default' as const,
+          className: 'border-yellow-500 bg-yellow-50',
+          icon: AlertCircle,
+          title: '⚠️ Some services are experiencing issues',
+          description: 'Functionality may be limited. Our team is working to restore full service.'
+        }
+      case 'down':
+        return {
+          variant: 'destructive' as const,
+          className: 'border-red-500 bg-red-50',
+          icon: XCircle,
+          title: '🚨 Backend services are currently unavailable',
+          description: 'We\'re working to restore service. Some features may not work properly.'
+        }
+      default:
+        return {
+          variant: 'default' as const,
+          className: '',
+          icon: AlertCircle,
+          title: 'Service status update',
+          description: 'Checking service status...'
+        }
+    }
+  }
+
+  const config = getStatusConfig()
+  const StatusIcon = config.icon
+
+  return (
+    <Alert className={`mb-4 ${config.className}`}>
+      <StatusIcon className="h-4 w-4" />
+      <div className="flex-1">
+        <AlertDescription className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="font-medium">{config.title}</span>
+            <div className="flex items-center gap-2">
+              <Badge variant={status.overall === 'down' ? 'destructive' : 'secondary'}>
+                {status.overall.toUpperCase()}
+              </Badge>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={checkStatus}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </div>
+          
+          <p className="text-sm">{config.description}</p>
+          
+          {status.latency && (
+            <p className="text-xs text-muted-foreground">
+              Response time: {status.latency}ms • Last check: {status.lastCheck?.toLocaleTimeString()}
+            </p>
+          )}
+
+          {showDetails && (
+            <div className="mt-3 space-y-2 border-t pt-3">
+              <h4 className="text-sm font-medium">Service Details:</h4>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  {status.database ? (
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <XCircle className="h-3 w-3 text-red-500" />
+                  )}
+                  <span>Database</span>
+                </div>
+                <div className="text-muted-foreground">{status.details.database || 'Unknown'}</div>
+                
+                <div className="flex items-center gap-2">
+                  {status.auth ? (
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <XCircle className="h-3 w-3 text-red-500" />
+                  )}
+                  <span>Authentication</span>
+                </div>
+                <div className="text-muted-foreground">{status.details.auth || 'Unknown'}</div>
+                
+                <div className="flex items-center gap-2">
+                  {status.storage ? (
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <XCircle className="h-3 w-3 text-red-500" />
+                  )}
+                  <span>Storage</span>
+                </div>
+                <div className="text-muted-foreground">{status.details.storage || 'Unknown'}</div>
+                
+                <div className="flex items-center gap-2">
+                  {status.realtime ? (
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                  ) : (
+                    <XCircle className="h-3 w-3 text-red-500" />
+                  )}
+                  <span>Real-time</span>
+                </div>
+                <div className="text-muted-foreground">{status.details.realtime || 'Unknown'}</div>
+              </div>
+            </div>
+          )}
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowDetails(!showDetails)}
+            className="mt-2"
+          >
+            {showDetails ? 'Hide Details' : 'Show Details'}
+          </Button>
+        </AlertDescription>
+      </div>
+    </Alert>
+  )
+}
