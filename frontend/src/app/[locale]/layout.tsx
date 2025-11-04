@@ -1,11 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Roboto_Mono, Noto_Sans_Georgian } from "next/font/google";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { Providers } from '../providers';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { PWAInstallPrompt } from '@/components/mobile/PWAInstallPrompt';
+import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
 import { locales, getLocaleDirection, type Locale } from '@/i18n/config';
+import '../globals.css';
 
 const inter = Inter({
   variable: "--font-inter",
@@ -41,6 +44,25 @@ export async function generateMetadata({
   return {
     title: meta.title,
     description: meta.description,
+    manifest: "/manifest.json",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: "Georgian Distribution",
+    },
+    formatDetection: {
+      telephone: false,
+    },
+    icons: {
+      icon: [
+        { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+        { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+      ],
+      apple: [
+        { url: "/icons/icon-152x152.png", sizes: "152x152", type: "image/png" },
+        { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      ],
+    },
     openGraph: {
       title: meta.title,
       description: meta.description,
@@ -63,6 +85,14 @@ export async function generateMetadata({
   };
 }
 
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+};
+
 export default async function LocaleLayout({
   children,
   params: { locale }
@@ -82,6 +112,17 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} dir={direction}>
+      <head>
+        <meta name="application-name" content="Georgian Distribution" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Georgian Distribution" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="theme-color" content="#000000" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png" />
+      </head>
       <body
         className={`${inter.variable} ${robotoMono.variable} ${notoSansGeorgian.variable} antialiased`}
         style={{
@@ -94,9 +135,11 @@ export default async function LocaleLayout({
           <NextIntlClientProvider messages={messages}>
             <Providers>
               {children}
+              <PWAInstallPrompt />
             </Providers>
           </NextIntlClientProvider>
         </ErrorBoundary>
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );

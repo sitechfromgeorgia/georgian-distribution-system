@@ -98,7 +98,7 @@ const nextConfig: NextConfig = {
         headers: [
           // Use the first allowed origin instead of wildcard for security
           // In production, middleware should validate the actual origin header
-          { key: 'Access-Control-Allow-Origin', value: primaryOrigin as string },
+          { key: 'Access-Control-Allow-Origin', value: primaryOrigin },
           { key: 'Access-Control-Allow-Credentials', value: 'true' },
           { key: 'Vary', value: 'Origin' },
           { key: 'Access-Control-Allow-Methods', value: 'GET,DELETE,PATCH,POST,PUT,OPTIONS' },
@@ -270,6 +270,11 @@ const nextConfig: NextConfig = {
 
   // Base path configuration
   basePath: process.env.NODE_ENV === 'production' ? '' : '',
+
+  // PWA Configuration
+  // Service worker is registered client-side via lib/pwa.ts
+  // Manifest.json is in public directory
 };
 
 export default withNextIntl(nextConfig);
+
