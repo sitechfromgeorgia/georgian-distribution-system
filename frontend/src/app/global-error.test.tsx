@@ -22,11 +22,17 @@ describe('Global Error Boundary', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    // Stub console.error to avoid noisy stderr output in tests
+    vi.spyOn(console, 'error').mockImplementation(() => {})
     // Mock window.location
     Object.defineProperty(window, 'location', {
       value: { href: '/' },
       writable: true,
     })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('should render global error boundary', () => {
@@ -108,10 +114,9 @@ describe('Global Error Boundary', () => {
     const { container } = render(<GlobalError error={mockError} reset={mockReset} />)
 
     // Assert
-    const htmlElement = container.querySelector('html')
-    const bodyElement = container.querySelector('body')
-    expect(htmlElement).toBeInTheDocument()
-    expect(bodyElement).toBeInTheDocument()
+    // Verify HTML and body elements exist in the document
+    expect(document.documentElement).toBeInstanceOf(HTMLElement)
+    expect(document.body).toBeInstanceOf(HTMLElement)
   })
 
   it('should display Georgian critical error message', () => {

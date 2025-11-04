@@ -592,8 +592,9 @@ describe('Georgian Distribution System Performance Optimizations', () => {
 
 // Helper function to test performance optimization effectiveness
 export async function testPerformanceOptimizationEffectiveness() {
-  console.log('🏛️ Testing Georgian Distribution System Performance Optimizations...');
-  
+  const { logger } = await import('@/lib/logger');
+  logger.info('🏛️ Testing Georgian Distribution System Performance Optimizations...', { context: 'performance-test' });
+
   const testResults = {
     timestamp: new Date().toISOString(),
     cacheTests: await testCachingPerformance(),
@@ -601,12 +602,12 @@ export async function testPerformanceOptimizationEffectiveness() {
     georgianTests: await testGeorgianOptimizationPerformance(),
     integrationTests: await testIntegrationPerformance()
   };
-  
-  console.log('✅ Performance Optimization Tests Completed');
-  console.log(`📊 Cache Hit Rate: ${testResults.cacheTests.hitRate}%`);
-  console.log(`📦 Bundle Size: ${(testResults.bundleTests.bundleSize / 1024).toFixed(1)}KB`);
-  console.log(`🏛️ Georgian Optimization Score: ${testResults.georgianTests.score}%`);
-  
+
+  logger.info('✅ Performance Optimization Tests Completed', { context: 'performance-test' });
+  logger.info(`📊 Cache Hit Rate: ${testResults.cacheTests.hitRate}%`, { context: 'performance-test', hitRate: testResults.cacheTests.hitRate });
+  logger.info(`📦 Bundle Size: ${(testResults.bundleTests.bundleSize / 1024).toFixed(1)}KB`, { context: 'performance-test', bundleSize: testResults.bundleTests.bundleSize });
+  logger.info(`🏛️ Georgian Optimization Score: ${testResults.georgianTests.score}%`, { context: 'performance-test', score: testResults.georgianTests.score });
+
   return testResults;
 }
 
@@ -679,13 +680,14 @@ async function testIntegrationPerformance() {
 
 // Export test runner for CLI usage
 if (require.main === module) {
-  testPerformanceOptimizationEffectiveness()
-    .then(results => {
-      console.log('\n✅ Georgian Distribution System Performance Optimization Tests Passed');
-      process.exit(0);
-    })
-    .catch(error => {
-      console.error('❌ Performance optimization tests failed:', error);
+  import('@/lib/logger').then(({ logger }) => {
+    testPerformanceOptimizationEffectiveness()
+      .then(results => {
+        logger.info('\n✅ Georgian Distribution System Performance Optimization Tests Passed', { context: 'performance-test' });
+        process.exit(0);
+      })
+      .catch(error => {
+        console.error('❌ Performance optimization tests failed:', error);
       process.exit(1);
     });
 }
