@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createClient } from '@supabase/supabase-js'
-import { 
-  storage, 
-  STORAGE_BUCKETS, 
-  FileValidator, 
-  GeorgianDistributionStorage 
+import {
+  storage,
+  STORAGE_BUCKETS,
+  FileValidator,
+  GeorgianDistributionStorage
 } from '@/lib/supabase/storage'
 import type { Database } from '@/lib/supabase/client'
+import { logger } from '@/lib/logger'
 
 // Test configuration
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321'
@@ -22,17 +23,17 @@ describe('Storage Configuration Tests', () => {
   let testOrderId: string
 
   beforeAll(async () => {
-    console.log('🔧 Setting up storage tests...')
-    
+    logger.info('🔧 Setting up storage tests...', { context: 'storage-test' })
+
     // Create test user if needed
     const { data: user, error: userError } = await supabase.auth.signUp({
       email: 'test-storage@example.com',
       password: 'testpassword123'
     })
-    
+
     if (!userError && user) {
       testUser = user.user
-      console.log('✅ Test user created')
+      logger.info('✅ Test user created', { context: 'storage-test' })
     }
 
     // Generate test IDs
@@ -48,9 +49,9 @@ describe('Storage Configuration Tests', () => {
         await storage.deleteFile(STORAGE_BUCKETS.AVATARS, `${testUser.id}/avatar.jpg`)
         await storage.deleteFile(STORAGE_BUCKETS.DOCUMENTS, `${testUser.id}/documents/test.pdf`)
         await storage.deleteFile(STORAGE_BUCKETS.TEMP_UPLOADS, `${testUser.id}/temp/test.jpg`)
-        console.log('✅ Test files cleaned up')
+        logger.info('✅ Test files cleaned up', { context: 'storage-test' })
       } catch (error) {
-        console.log('⚠️  Some test files may not exist:', error instanceof Error ? error.message : 'Unknown error')
+        logger.warn('⚠️  Some test files may not exist', { context: 'storage-test', error: error instanceof Error ? error.message : 'Unknown error' })
       }
     }
   })
@@ -106,7 +107,7 @@ describe('Storage Configuration Tests', () => {
     describe('File Upload Operations', () => {
       it('should upload user avatar', async () => {
         if (!testUser) {
-          console.log('⏭️  Skipping avatar upload test - no test user')
+          logger.info('⏭️  Skipping avatar upload test - no test user', { context: 'storage-test' })
           return
         }
 
@@ -118,7 +119,7 @@ describe('Storage Configuration Tests', () => {
         expect(result.data?.publicUrl).toBeDefined()
         expect(result.data?.path).toBeDefined()
 
-        console.log('✅ Avatar upload successful:', result.data?.publicUrl)
+        logger.info('✅ Avatar upload successful:', { context: 'storage-test', data: result.data?.publicUrl })
       })
 
       it('should upload product image', async () => {
@@ -129,7 +130,7 @@ describe('Storage Configuration Tests', () => {
         expect(result.data).toBeDefined()
         expect(result.data?.publicUrl).toBeDefined()
 
-        console.log('✅ Product image upload successful:', result.data?.publicUrl)
+        logger.info('✅ Product image upload successful:', { context: 'storage-test', data: result.data?.publicUrl })
       })
 
       it('should upload restaurant logo', async () => {
@@ -140,7 +141,7 @@ describe('Storage Configuration Tests', () => {
         expect(result.data).toBeDefined()
         expect(result.data?.publicUrl).toBeDefined()
 
-        console.log('✅ Restaurant logo upload successful:', result.data?.publicUrl)
+        logger.info('✅ Restaurant logo upload successful:', { context: 'storage-test', data: result.data?.publicUrl })
       })
 
       it('should upload delivery proof', async () => {
@@ -151,12 +152,12 @@ describe('Storage Configuration Tests', () => {
         expect(result.data).toBeDefined()
         expect(result.data?.publicUrl).toBeDefined()
 
-        console.log('✅ Delivery proof upload successful:', result.data?.publicUrl)
+        logger.info('✅ Delivery proof upload successful:', { context: 'storage-test', data: result.data?.publicUrl })
       })
 
       it('should upload business document', async () => {
         if (!testUser) {
-          console.log('⏭️  Skipping document upload test - no test user')
+          logger.info('⏭️  Skipping document upload test - no test user', { context: 'storage-test' })
           return
         }
 
@@ -167,12 +168,12 @@ describe('Storage Configuration Tests', () => {
         expect(result.data).toBeDefined()
         expect(result.data?.publicUrl).toBeDefined()
 
-        console.log('✅ Business document upload successful:', result.data?.publicUrl)
+        logger.info('✅ Business document upload successful:', { context: 'storage-test', data: result.data?.publicUrl })
       })
 
       it('should upload temporary file', async () => {
         if (!testUser) {
-          console.log('⏭️  Skipping temp file upload test - no test user')
+          logger.info('⏭️  Skipping temp file upload test - no test user', { context: 'storage-test' })
           return
         }
 
@@ -183,7 +184,7 @@ describe('Storage Configuration Tests', () => {
         expect(result.data).toBeDefined()
         expect(result.data?.publicUrl).toBeDefined()
 
-        console.log('✅ Temporary file upload successful:', result.data?.publicUrl)
+        logger.info('✅ Temporary file upload successful:', { context: 'storage-test', data: result.data?.publicUrl })
       })
     })
 
@@ -192,7 +193,7 @@ describe('Storage Configuration Tests', () => {
         const url = storage.getFileUrl(STORAGE_BUCKETS.PRODUCT_IMAGES, 'products/test/image.jpg')
         expect(url).toBeDefined()
         expect(url).toContain('supabase')
-        console.log('✅ File URL generated:', url)
+        logger.info('✅ File URL generated:', { context: 'storage-test', data: url })
       })
 
       it('should list files in bucket', async () => {
@@ -202,13 +203,13 @@ describe('Storage Configuration Tests', () => {
 
         expect(result.error).toBeUndefined()
         expect(Array.isArray(result.data)).toBe(true)
-        console.log('✅ Files listed successfully')
+        logger.info('✅ Files listed successfully', { context: 'storage-test' })
       })
 
       it('should get file metadata', async () => {
         const result = await storage.getFileMetadata(STORAGE_BUCKETS.PRODUCT_IMAGES, 'products/test/image.jpg')
         expect(result.error).toBeUndefined()
-        console.log('✅ File metadata retrieved')
+        logger.info('✅ File metadata retrieved', { context: 'storage-test' })
       })
     })
 
@@ -219,7 +220,7 @@ describe('Storage Configuration Tests', () => {
 
         expect(result.error).toBeDefined()
         expect(result.data).toBeUndefined()
-        console.log('✅ Invalid file type rejected correctly')
+        logger.info('✅ Invalid file type rejected correctly', { context: 'storage-test' })
       })
 
       it('should handle oversized file uploads', async () => {
@@ -228,7 +229,7 @@ describe('Storage Configuration Tests', () => {
 
         expect(result.error).toBeDefined()
         expect(result.data).toBeUndefined()
-        console.log('✅ Oversized file rejected correctly')
+        logger.info('✅ Oversized file rejected correctly', { context: 'storage-test' })
       })
     })
 
@@ -237,13 +238,13 @@ describe('Storage Configuration Tests', () => {
         const result = await storage.getBucketStatistics()
         expect(result.error).toBeUndefined()
         expect(result.data).toBeDefined()
-        console.log('✅ Bucket statistics retrieved')
+        logger.info('✅ Bucket statistics retrieved', { context: 'storage-test' })
       })
 
       it('should clean up temporary files', async () => {
         const result = await storage.cleanupTemporaryFiles()
         expect(result.error).toBeUndefined()
-        console.log('✅ Temporary files cleanup completed')
+        logger.info('✅ Temporary files cleanup completed', { context: 'storage-test' })
       })
     })
   })
@@ -263,7 +264,7 @@ describe('Storage Configuration Tests', () => {
       expect(UserAvatarUpload).toBeDefined()
       expect(RestaurantLogoUpload).toBeDefined()
       expect(DeliveryProofUpload).toBeDefined()
-      console.log('✅ React components exported successfully')
+      logger.info('✅ React components exported successfully', { context: 'storage-test' })
     })
   })
 })
@@ -275,11 +276,11 @@ describe('Storage Access Control Tests', () => {
   let driverUser: any = null
 
   beforeAll(async () => {
-    console.log('🔧 Setting up role-based tests...')
+    logger.info('🔧 Setting up role-based tests...', { context: 'storage-test' })
 
     // Note: In a real environment, these would be actual users with different roles
     // For testing purposes, we'll simulate role-based access
-    console.log('📋 Test roles configured: admin, restaurant, driver')
+    logger.info('📋 Test roles configured: admin, restaurant, driver', { context: 'storage-test' })
   })
 
   it('should enforce bucket access policies', async () => {
@@ -290,7 +291,7 @@ describe('Storage Access Control Tests', () => {
     const productResult = await storage.uploadProductImage('test-public', testFile)
     expect(productResult.error).toBeUndefined()
     
-    console.log('✅ Public bucket access working')
+    logger.info('✅ Public bucket access working', { context: 'storage-test' })
   })
 
   it('should handle role-specific operations', async () => {
@@ -305,7 +306,7 @@ describe('Storage Access Control Tests', () => {
     const logoResult = await storage.uploadRestaurantLogo('restaurant-test', testFile)
     expect(logoResult.error).toBeUndefined()
 
-    console.log('✅ Role-based access working correctly')
+    logger.info('✅ Role-based access working correctly', { context: 'storage-test' })
   })
 })
 

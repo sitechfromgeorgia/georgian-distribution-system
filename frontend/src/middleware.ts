@@ -1,22 +1,26 @@
 /**
- * Next.js Middleware with Supabase Authentication
+ * Next.js Middleware with Supabase Authentication and i18n
  *
  * This middleware handles:
- * 1. Session refresh and authentication
- * 2. Route protection based on user roles
- * 3. CSRF token validation for mutations
- * 4. Security headers
+ * 1. Internationalization (i18n) with next-intl
+ * 2. Session refresh and authentication
+ * 3. Route protection based on user roles
+ * 4. CSRF token validation for mutations
+ * 5. Security headers
  *
  * @see https://supabase.com/docs/guides/auth/server-side/nextjs
+ * @see https://next-intl-docs.vercel.app/docs/routing/middleware
  */
 
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import createMiddleware from 'next-intl/middleware'
 import type { Database } from '@/types/database'
 import { getEnvVar, env } from '@/lib/env'
+import { locales, defaultLocale } from '@/i18n/config'
 
 /**
- * Protected routes that require authentication
+ * Protected routes that require authentication (without locale prefix)
  */
 const PROTECTED_ROUTES = [
   '/dashboard',
@@ -39,7 +43,7 @@ type ProfileRole = {
 }
 
 /**
- * Routes that require specific roles
+ * Routes that require specific roles (without locale prefix)
  */
 const ROLE_ROUTES: Record<string, UserRole[]> = {
   '/dashboard/admin': ['admin'],
@@ -50,7 +54,7 @@ const ROLE_ROUTES: Record<string, UserRole[]> = {
 }
 
 /**
- * Public routes that don't require authentication
+ * Public routes that don't require authentication (without locale prefix)
  */
 const PUBLIC_ROUTES = [
   '/',
@@ -69,6 +73,18 @@ const PUBLIC_ROUTES = [
  * Mutation methods that require CSRF protection
  */
 const MUTATION_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE']
+
+/**
+ * Strip locale from pathname to get the actual route
+ */
+function stripLocale(pathname: string): string {
+  for (const locale of locales) {
+    if (pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)) {
+      return pathname.slice(locale.length + 1) || '/'
+    }
+  }
+  return pathname
+}
 
 /**
  * Check if a path matches any of the route patterns
@@ -107,17 +123,56 @@ function validateCSRF(request: NextRequest): boolean {
 }
 
 /**
+ * Create next-intl middleware for locale handling
+ */
+const intlMiddleware = createMiddleware({
+  locales,
+  defaultLocale,
+  localePrefix: 'always',
+})
+
+/**
  * Main middleware function
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Skip locale handling for API routes and static files
+  if (
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/') ||
+    pathname.includes('.')
+  ) {
+    return handleAuthMiddleware(request)
+  }
+
+  // Handle i18n routing first
+  const intlResponse = intlMiddleware(request)
+
+  // Get pathname without locale for route matching
+  const pathnameWithoutLocale = stripLocale(pathname)
+
+  // If it's a public route or static file, return the intl response
+  if (matchesRoute(pathnameWithoutLocale, PUBLIC_ROUTES)) {
+    return intlResponse
+  }
+
+  // For protected routes, apply auth middleware
+  return handleAuthMiddleware(request, intlResponse)
+}
+
+/**
+ * Authentication middleware logic
+ */
+async function handleAuthMiddleware(
+  request: NextRequest,
+  baseResponse: NextResponse = NextResponse.next({ request: { headers: request.headers } })
+) {
+  const { pathname } = request.nextUrl
+  const pathnameWithoutLocale = stripLocale(pathname)
+
   // Create response
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
+  let response = baseResponse
 
   // Create Supabase client with cookie handling
   const supabase = createServerClient<Database>(
@@ -161,26 +216,20 @@ export async function middleware(request: NextRequest) {
   // Refresh session if needed
   const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-  // Add comprehensive security headers (Phase 2 Enhancement)
+  // Add comprehensive security headers
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-XSS-Protection', '1; mode=block')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
 
   // Content Security Policy (CSP)
-  // Note: Development mode requires 'unsafe-inline' and 'unsafe-eval' for Next.js HMR
-  // In production, implement nonce-based CSP for better security
   const isDevelopment = process.env.NODE_ENV === 'development'
 
   const cspDirectives = [
     "default-src 'self'",
-    // Development: Allow unsafe-inline and unsafe-eval for Next.js hot reload
-    // Production: Strict CSP without unsafe directives
     isDevelopment
       ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net"
       : "script-src 'self' https://cdn.jsdelivr.net",
-    // Styles: 'unsafe-inline' kept for Tailwind/Radix UI
-    // TODO: Implement nonce-based CSP or extract all inline styles
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: blob:",
@@ -208,28 +257,34 @@ export async function middleware(request: NextRequest) {
   )
 
   // Check if route is public
-  const isPublicRoute = matchesRoute(pathname, PUBLIC_ROUTES)
+  const isPublicRoute = matchesRoute(pathnameWithoutLocale, PUBLIC_ROUTES)
 
   if (isPublicRoute) {
     return response
   }
 
   // Check if route requires authentication
-  const isProtectedRoute = matchesRoute(pathname, PROTECTED_ROUTES)
+  const isProtectedRoute = matchesRoute(pathnameWithoutLocale, PROTECTED_ROUTES)
 
   if (isProtectedRoute) {
-    // No session - redirect to login
+    // No session - redirect to login (preserve locale)
     if (!session) {
-      const redirectUrl = new URL('/login', request.url)
+      // Extract locale from pathname
+      let locale = defaultLocale
+      for (const loc of locales) {
+        if (pathname === `/${loc}` || pathname.startsWith(`/${loc}/`)) {
+          locale = loc
+          break
+        }
+      }
+
+      const redirectUrl = new URL(`/${locale}/login`, request.url)
       redirectUrl.searchParams.set('redirect', pathname)
       return NextResponse.redirect(redirectUrl)
     }
 
     // Validate CSRF for API mutations
-    // Note: Next.js Server Actions (pages using 'use server') have built-in CSRF protection
-    // through origin validation configured in next.config.ts experimental.serverActions.allowedOrigins
-    // This CSRF check only applies to traditional API routes under /api/*
-    if (pathname.startsWith('/api/') && !validateCSRF(request)) {
+    if (pathnameWithoutLocale.startsWith('/api/') && !validateCSRF(request)) {
       return NextResponse.json(
         { error: 'Invalid CSRF token' },
         { status: 403 }
@@ -238,7 +293,7 @@ export async function middleware(request: NextRequest) {
 
     // Check role-based access
     for (const [route, allowedRoles] of Object.entries(ROLE_ROUTES)) {
-      if (matchesRoute(pathname, [route])) {
+      if (matchesRoute(pathnameWithoutLocale, [route])) {
         // Get user profile to check role
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
@@ -256,8 +311,15 @@ export async function middleware(request: NextRequest) {
 
         // Validate profile
         if (profileError || !profileData || !isValidProfile(profileData)) {
-          // Invalid profile - redirect to login
-          return NextResponse.redirect(new URL('/login', request.url))
+          // Invalid profile - redirect to login (preserve locale)
+          let locale = defaultLocale
+          for (const loc of locales) {
+            if (pathname === `/${loc}` || pathname.startsWith(`/${loc}/`)) {
+              locale = loc
+              break
+            }
+          }
+          return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
         }
 
         // At this point, TypeScript knows profileData is ProfileRole
@@ -265,17 +327,25 @@ export async function middleware(request: NextRequest) {
 
         // Check if user has required role
         if (!allowedRoles.includes(profile.role)) {
-          // Unauthorized - redirect to appropriate dashboard based on user's actual role
+          // Unauthorized - redirect to appropriate dashboard based on user's actual role (preserve locale)
+          let locale = defaultLocale
+          for (const loc of locales) {
+            if (pathname === `/${loc}` || pathname.startsWith(`/${loc}/`)) {
+              locale = loc
+              break
+            }
+          }
+
           switch (profile.role) {
             case 'restaurant':
-              return NextResponse.redirect(new URL('/dashboard/restaurant', request.url))
+              return NextResponse.redirect(new URL(`/${locale}/dashboard/restaurant`, request.url))
             case 'driver':
-              return NextResponse.redirect(new URL('/dashboard/driver', request.url))
+              return NextResponse.redirect(new URL(`/${locale}/dashboard/driver`, request.url))
             case 'demo':
-              return NextResponse.redirect(new URL('/dashboard/demo', request.url))
+              return NextResponse.redirect(new URL(`/${locale}/dashboard/demo`, request.url))
             default:
               // Unknown role - redirect to login
-              return NextResponse.redirect(new URL('/login', request.url))
+              return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
           }
         }
       }
