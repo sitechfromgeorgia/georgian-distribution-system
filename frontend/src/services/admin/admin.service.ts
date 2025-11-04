@@ -97,6 +97,32 @@ export class AdminService {
     return data || []
   }
 
+  async getAllRestaurants() {
+    const { data, error } = await this.supabase
+      .from('restaurants')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw new Error(`Failed to fetch restaurants: ${error.message}`)
+    }
+
+    return data || []
+  }
+
+  async getAllDrivers() {
+    const { data, error } = await this.supabase
+      .from('drivers')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw new Error(`Failed to fetch drivers: ${error.message}`)
+    }
+
+    return data || []
+  }
+
   async getAllProducts() {
     const { data, error } = await this.supabase
       .from('products')

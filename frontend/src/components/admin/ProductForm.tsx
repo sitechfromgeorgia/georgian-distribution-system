@@ -1,34 +1,20 @@
 'use client'
-<<<<<<< HEAD
-import { logger } from '@/lib/logger'
-=======
->>>>>>> 4f46816d3369e63516557dedd905a7027f3ba306
-
-import Image from 'next/image'
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
+import { X, Plus, ImageIcon } from 'lucide-react'
+import { logger } from '@/lib/logger'
+import { createBrowserClient } from '@/lib/supabase'
+import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { X, Plus, Image as ImageIcon } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
-<<<<<<< HEAD
-import { createBrowserClient } from '@/lib/supabase'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
 import type { Product, ProductInsert } from '@/types/database'
-
-// Create Supabase client instance
-const supabase = createBrowserClient()
-
-=======
-import { supabase } from '@/lib/supabase/client'
-import type { Product, ProductInsert } from '@/types/database'
-
->>>>>>> 4f46816d3369e63516557dedd905a7027f3ba306
 
 interface ProductFormProps {
   product?: Product | null
@@ -46,6 +32,9 @@ const categories = [
 ]
 
 export function ProductForm({ product, onClose }: ProductFormProps) {
+  const supabase = createBrowserClient()
+  const { toast } = useToast()
+
   const [formData, setFormData] = useState<ProductInsert>({
     name: '',
     description: '',
@@ -63,7 +52,6 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string>('')
   const [newTag, setNewTag] = useState('')
-  const { toast } = useToast()
 
   useEffect(() => {
     if (product) {
@@ -199,11 +187,7 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
         }
 
         // @ts-ignore Supabase client type issue
-<<<<<<< HEAD
          
-=======
-          
->>>>>>> 4f46816d3369e63516557dedd905a7027f3ba306
         const { error } = await (supabase as any)
           .from('products')
           .update(updatePayload)
@@ -233,11 +217,7 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
         } as ProductInsert
 
         // Type assertion to bypass Supabase type inference issue
-<<<<<<< HEAD
          
-=======
-          
->>>>>>> 4f46816d3369e63516557dedd905a7027f3ba306
         const { error } = await (supabase as any)
           .from('products')
           .insert([insertData])
@@ -252,11 +232,7 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
 
       onClose()
     } catch (error) {
-<<<<<<< HEAD
       logger.error('Error saving product:', error)
-=======
-      console.error('Error saving product:', error)
->>>>>>> 4f46816d3369e63516557dedd905a7027f3ba306
       toast({
         title: 'შეცდომა',
         description: 'პროდუქტის შენახვა ვერ მოხერხდა',
