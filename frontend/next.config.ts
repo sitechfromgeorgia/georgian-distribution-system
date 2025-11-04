@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   // Fix for workspace root detection warning
   // Points to the correct root directory for file tracing
   outputFileTracingRoot: path.join(__dirname, '../'),
+
   // Allow images from both development and production Supabase storage
   images: {
     remotePatterns: [
@@ -38,7 +39,7 @@ const nextConfig: NextConfig = {
   // API routes configuration with environment-aware CORS
   async headers() {
     const environment = process.env.NEXT_PUBLIC_ENVIRONMENT || 'development';
-    
+
     // Define allowed origins based on environment
     let allowedOrigins: string[];
     if (environment === 'production') {
@@ -55,7 +56,7 @@ const nextConfig: NextConfig = {
         'https://greenland77.ge', // Allow production domain for cross-environment testing
       ];
     }
-    
+
     // Additional CORS origins from environment variable (comma-separated)
     const envCorsOrigins = process.env.NEXT_PUBLIC_CORS_ORIGINS;
     if (envCorsOrigins) {
@@ -67,6 +68,7 @@ const nextConfig: NextConfig = {
     }
 
     const primaryOrigin = allowedOrigins[0] || 'http://localhost:3000';
+
     return [
       {
         source: '/api/:path*',
@@ -93,7 +95,7 @@ const nextConfig: NextConfig = {
         headers: [
           // Use the first allowed origin instead of wildcard for security
           // In production, middleware should validate the actual origin header
-          { key: 'Access-Control-Allow-Origin', value: primaryOrigin as string },
+          { key: 'Access-Control-Allow-Origin', value: primaryOrigin },
           { key: 'Access-Control-Allow-Credentials', value: 'true' },
           { key: 'Vary', value: 'Origin' },
           { key: 'Access-Control-Allow-Methods', value: 'GET,DELETE,PATCH,POST,PUT,OPTIONS' },
@@ -232,7 +234,7 @@ const nextConfig: NextConfig = {
   // Redirects for environment switching
   async redirects() {
     const environment = process.env.NEXT_PUBLIC_ENVIRONMENT || 'development';
-    
+
     // Optional: Redirect root to appropriate dashboard based on environment
     if (environment === 'production') {
       return [
@@ -243,7 +245,7 @@ const nextConfig: NextConfig = {
         },
       ];
     }
-    
+
     return [];
   },
 
