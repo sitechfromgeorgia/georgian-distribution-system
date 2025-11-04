@@ -193,7 +193,7 @@ export const logPerformance = (metric: {
 }
 
 export const logSecurity = (event: {
-  type: 'auth' | 'access_denied' | 'suspicious_activity'
+  eventType: 'auth' | 'access_denied' | 'suspicious_activity'
   userId?: string
   ip?: string
   details: string

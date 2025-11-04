@@ -12,7 +12,7 @@ export const revalidate = 0
 export async function GET() {
   try {
     // Check critical dependencies
-    const supabase = createServerClient()
+    const supabase = await createServerClient()
     const { error } = await supabase
       .from('profiles')
       .select('id', { head: true })

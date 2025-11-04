@@ -1,6 +1,19 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import Image from 'next/image'
+import { X, Plus, ImageIcon } from 'lucide-react'
 import { logger } from '@/lib/logger'
+import { createBrowserClient } from '@/lib/supabase'
+import { useToast } from '@/hooks/use-toast'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
 import type { Product, ProductInsert } from '@/types/database'
 
 interface ProductFormProps {
@@ -19,6 +32,9 @@ const categories = [
 ]
 
 export function ProductForm({ product, onClose }: ProductFormProps) {
+  const supabase = createBrowserClient()
+  const { toast } = useToast()
+
   const [formData, setFormData] = useState<ProductInsert>({
     name: '',
     description: '',
@@ -36,7 +52,6 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string>('')
   const [newTag, setNewTag] = useState('')
-  const { toast } = useToast()
 
   useEffect(() => {
     if (product) {

@@ -37,30 +37,30 @@ const envSchema = z.object({
   // Feature flags
   NEXT_PUBLIC_ENABLE_ANALYTICS: z
     .enum(['true', 'false'])
-    .transform((val) => val === 'true')
-    .default('false'),
+    .default('false')
+    .transform((val) => val === 'true'),
   NEXT_PUBLIC_ENABLE_DEMO_MODE: z
     .enum(['true', 'false'])
-    .transform((val) => val === 'true')
-    .default('false'),
+    .default('false')
+    .transform((val) => val === 'true'),
   NEXT_PUBLIC_ENABLE_PERFORMANCE_MONITORING: z
     .enum(['true', 'false'])
-    .transform((val) => val === 'true')
-    .default('false'),
+    .default('false')
+    .transform((val) => val === 'true'),
   NEXT_PUBLIC_DEBUG_MODE: z
     .enum(['true', 'false'])
-    .transform((val) => val === 'true')
-    .default('false'),
+    .default('false')
+    .transform((val) => val === 'true'),
 
   // API configuration
   NEXT_PUBLIC_API_TIMEOUT: z
     .string()
-    .transform((val) => parseInt(val, 10))
-    .default('30000'),
+    .default('30000')
+    .transform((val) => parseInt(val, 10)),
   NEXT_PUBLIC_MAX_RETRIES: z
     .string()
-    .transform((val) => parseInt(val, 10))
-    .default('3'),
+    .default('3')
+    .transform((val) => parseInt(val, 10)),
 
   // Security
   CSRF_SECRET: z.string().optional(),
@@ -85,13 +85,13 @@ const envSchema = z.object({
   // Database backup (optional)
   BACKUP_ENABLED: z
     .enum(['true', 'false'])
-    .transform((val) => val === 'true')
-    .default('false'),
+    .default('false')
+    .transform((val) => val === 'true'),
   BACKUP_SCHEDULE: z.string().default('0 2 * * *'), // Daily at 2 AM
   BACKUP_RETENTION_DAYS: z
     .string()
-    .transform((val) => parseInt(val, 10))
-    .default('7'),
+    .default('7')
+    .transform((val) => parseInt(val, 10)),
   BACKUP_BUCKET: z.string().optional(),
 })
 
@@ -115,7 +115,7 @@ export function validateEnv(): Env {
     return validatedEnv
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors.map((err) => {
+      const errorMessages = error.issues.map((err: z.ZodIssue) => {
         return `  - ${err.path.join('.')}: ${err.message}`
       })
 

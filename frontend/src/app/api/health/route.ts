@@ -65,16 +65,16 @@ export async function GET() {
     }
 
     // Initialize service checks
-    const services = {
-      database: { status: 'down' as const, message: 'Not checked' },
-      auth: { status: 'down' as const, message: 'Not checked' },
-      storage: { status: 'down' as const, message: 'Not checked' },
-      api: { status: 'up' as const, latency: Date.now() - startTime }
+    const services: HealthCheckResponse['services'] = {
+      database: { status: 'down', message: 'Not checked' },
+      auth: { status: 'down', message: 'Not checked' },
+      storage: { status: 'down', message: 'Not checked' },
+      api: { status: 'up', latency: Date.now() - startTime }
     }
 
     // Check database connectivity
     try {
-      const supabase = createServerClient()
+      const supabase = await createServerClient()
       const dbStart = Date.now()
       const { error, count } = await supabase
         .from('profiles')
@@ -104,7 +104,7 @@ export async function GET() {
 
     // Check auth service
     try {
-      const supabase = createServerClient()
+      const supabase = await createServerClient()
       const authStart = Date.now()
       const { error } = await supabase.auth.getSession()
       const authLatency = Date.now() - authStart
@@ -123,7 +123,7 @@ export async function GET() {
 
     // Check storage service
     try {
-      const supabase = createServerClient()
+      const supabase = await createServerClient()
       const storageStart = Date.now()
       const { data, error } = await supabase.storage.listBuckets()
       const storageLatency = Date.now() - storageStart

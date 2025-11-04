@@ -14,7 +14,6 @@ Sentry.init({
   // You can remove this option if you're not planning to use the Sentry Session Replay feature:
   integrations: [
     Sentry.httpIntegration(),
-    Sentry.nodeProfilingIntegration(),
   ],
 
   // Note: if you want to override the automatic release value, do not set a
