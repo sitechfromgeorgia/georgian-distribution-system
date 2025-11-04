@@ -105,13 +105,13 @@ describe('Global Error Boundary', () => {
 
   it('should render with html and body tags', () => {
     // Act
-    const { container } = render(<GlobalError error={mockError} reset={mockReset} />)
+    render(<GlobalError error={mockError} reset={mockReset} />)
 
-    // Assert
-    const htmlElement = container.querySelector('html')
-    const bodyElement = container.querySelector('body')
-    expect(htmlElement).toBeInTheDocument()
-    expect(bodyElement).toBeInTheDocument()
+    // Assert - Check document elements directly
+    expect(document.documentElement).toBeInTheDocument()
+    expect(document.body).toBeInTheDocument()
+    expect(document.documentElement.tagName).toBe('HTML')
+    expect(document.body.tagName).toBe('BODY')
   })
 
   it('should display Georgian critical error message', () => {

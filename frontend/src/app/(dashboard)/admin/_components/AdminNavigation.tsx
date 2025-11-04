@@ -18,7 +18,9 @@ import {
   Bell,
   Moon,
   Sun,
-  LogOut
+  LogOut,
+  FileText,
+  Activity
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from 'next-themes'
@@ -29,6 +31,8 @@ const navigation = [
   { name: 'პროდუქტები', href: '/dashboard/admin/products', icon: Package },
   { name: 'შეკვეთები', href: '/dashboard/admin/orders', icon: ShoppingCart },
   { name: 'ანალიტიკა', href: '/dashboard/admin/analytics', icon: BarChart3 },
+  { name: 'სისტემის მდგომარეობა', href: '/dashboard/admin/system-health', icon: Activity },
+  { name: 'აუდიტ ლოგები', href: '/dashboard/admin/audit-logs', icon: FileText },
   { name: 'პარამეტრები', href: '/dashboard/admin/settings', icon: Settings },
 ]
 

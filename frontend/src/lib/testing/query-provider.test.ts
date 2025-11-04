@@ -1,8 +1,30 @@
 // Georgian Distribution System QueryProvider Test Runner
 // Manual test runner for Georgian Distribution System QueryProvider implementation
 
+import { describe, it, expect } from 'vitest'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
+
+// Vitest test suite
+describe('query-provider module', () => {
+  it('should import without throwing', async () => {
+    const mod = await import('./query-provider')
+    expect(mod).toBeDefined()
+  })
+
+  it('should have GDSQueryProviderTestRunner class', async () => {
+    const mod = await import('./query-provider')
+    expect(mod.GDSQueryProviderTestRunner).toBeDefined()
+    expect(typeof mod.GDSQueryProviderTestRunner).toBe('function')
+  })
+
+  it('should export runGDSQueryProviderTests function', async () => {
+    const mod = await import('./query-provider')
+    expect(mod.runGDSQueryProviderTests).toBeDefined()
+    expect(typeof mod.runGDSQueryProviderTests).toBe('function')
+  })
+})
+
 
 // Mock implementations for testing
 const mockUseQuery = {

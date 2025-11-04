@@ -2,7 +2,7 @@ import { logger } from '@/lib/logger'
 import { createBrowserClient } from '@/lib/supabase'
 import { getAdminClient, adminDatabase, checkAdminConnection, getAdminEnvironmentInfo } from '@/lib/supabase/admin'
 import { getEnvVar } from '@/lib/env'
-import type { Database } from '@/lib/supabase'
+import type { Database } from '@/types/database'
 
 export class AdminService {
   private supabase = createBrowserClient()
@@ -38,12 +38,8 @@ export class AdminService {
       .select('*')
       .order('created_at', { ascending: false })
 
-    const { data: restaurants } = await this.supabase
-      .from('restaurants')
-      .select('*')
-
-    const { data: drivers } = await this.supabase
-      .from('drivers')
+    const { data: profiles } = await this.supabase
+      .from('profiles')
       .select('*')
 
     const { data: products } = await this.supabase
@@ -52,8 +48,8 @@ export class AdminService {
 
     // Calculate analytics
     const totalOrders = orders?.length || 0
-    const activeRestaurants = restaurants?.length || 0
-    const activeDrivers = drivers?.length || 0
+    const activeRestaurants = profiles?.filter(p => p.role === 'restaurant' && p.is_active).length || 0
+    const activeDrivers = profiles?.filter(p => p.role === 'driver' && p.is_active).length || 0
     const totalProducts = products?.length || 0
     const totalRevenue = orders?.reduce((sum, order) => sum + ((order as any).total_amount || 0), 0) || 0
 
@@ -155,6 +151,34 @@ export class AdminService {
     return data
   }
 
+  async updateUserStatus(userId: string, is_active: boolean) {
+    const { data, error } = await (this.supabase
+      .from('profiles') as any)
+      .update({ is_active, updated_at: new Date().toISOString() })
+      .eq('id', userId)
+      .select()
+      .single()
+
+    if (error) {
+      throw new Error(`Failed to update user status: ${error.message}`)
+    }
+
+    return data
+  }
+
+  async deleteUser(userId: string) {
+    const { error } = await this.supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId)
+
+    if (error) {
+      throw new Error(`Failed to delete user: ${error.message}`)
+    }
+
+    return { success: true }
+  }
+
   async createProduct(productData: {
     name: string
     name_ka: string
@@ -228,7 +252,7 @@ export class AdminService {
       try {
         const { data, error } = await this.adminClient
           .from('products')
-          .update({ active: false, updated_at: new Date().toISOString() })
+          .update({ is_active: false, updated_at: new Date().toISOString() })
           .eq('id', productId)
           .select()
           .single()
@@ -399,7 +423,7 @@ export class AdminService {
 
     return last7Days.reverse().map(date => ({
       date,
-      orders: orders.filter(order => 
+      orders: orders.filter(order =>
         order.created_at.startsWith(date)
       ).length
     }))
@@ -424,7 +448,7 @@ export class AdminService {
 
   async exportData(type: 'orders' | 'users' | 'products') {
     let data: any[] = []
-    
+
     switch (type) {
       case 'orders':
         const { data: ordersData } = await this.supabase
