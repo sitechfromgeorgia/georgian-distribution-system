@@ -1,10 +1,39 @@
-import { createBrowserClient } from '@/lib/supabase/client'
-import { RestaurantOrder, Product, CartItem, RestaurantMetrics, OrderFilters, ProductFilters } from '@/types/restaurant'
+import { logger } from '@/lib/logger'
+import { createBrowserClient } from '@/lib/supabase'
+import { RestaurantOrder, Product, RestaurantProduct, CartItem, RestaurantMetrics, OrderFilters, ProductFilters } from '@/types/restaurant'
+
+// Create Supabase client instance
+const supabase = createBrowserClient()
+
+// Type for database product with optional restaurant-specific fields
+type DatabaseProduct = Product & {
+  is_available?: boolean
+  max_order_quantity?: number
+  min_order_quantity?: number
+}
+
+ 
+type AnyObject = Record<string, any>
+
+// Define proper interfaces for database types
+interface OrderItem {
+  id: string
+  order_id: string
+  product_id: string
+  quantity: number
+  unit_price: number
+  total_price: number
+  notes?: string
+  products?: {
+    name: string
+    unit?: string
+  }
+}
 
 export class RestaurantUtils {
   static async getOrders(filters?: OrderFilters): Promise<RestaurantOrder[]> {
-    const supabase = createBrowserClient()
-    let query = supabase
+     
+    let query = (supabase as any)
       .from('orders')
       .select(`
         *,
@@ -48,19 +77,19 @@ export class RestaurantUtils {
 
     if (error) throw error
 
-    return data.map(order => ({
+     
+    return data.map((order: any) => ({
       ...order,
       items: order.order_items || [],
-      driver_name: order.profiles?.full_name
+      driver_name: order.profiles?.full_name,
+      total_amount: order.total_amount ?? undefined
     })) as RestaurantOrder[]
   }
 
-  static async getProducts(filters?: ProductFilters): Promise<Product[]> {
-    const supabase = createBrowserClient()
+  static async getProducts(filters?: ProductFilters): Promise<RestaurantProduct[]> {
     let query = supabase
       .from('products')
       .select('*')
-      .eq('is_available', true)
       .order('name')
 
     if (filters?.category?.length) {
@@ -79,12 +108,22 @@ export class RestaurantUtils {
 
     if (filters?.available_only !== undefined) {
       query = query.eq('is_available', filters.available_only)
+    } else {
+      // Default to only available products
+      query = query.eq('is_available', true)
     }
 
     const { data, error } = await query
     if (error) throw error
 
-    return data as Product[]
+    // Convert to RestaurantProduct with missing fields
+     
+    return (data || []).map((product: any) => ({
+      ...product,
+      is_available: product.is_active ?? false,
+      max_order_quantity: product.max_order_quantity ?? 100,
+      min_order_quantity: product.min_order_quantity ?? 1
+    })) as RestaurantProduct[]
   }
 
   static async createOrder(orderData: {
@@ -93,7 +132,6 @@ export class RestaurantUtils {
     delivery_time?: string
     special_instructions?: string
   }): Promise<RestaurantOrder> {
-    const supabase = createBrowserClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
@@ -103,7 +141,8 @@ export class RestaurantUtils {
     )
 
     // Create order
-    const { data: order, error: orderError } = await supabase
+     
+    const { data: order, error: orderError } = await (supabase as any)
       .from('orders')
       .insert({
         restaurant_id: user.id,
@@ -128,7 +167,8 @@ export class RestaurantUtils {
       notes: item.notes
     }))
 
-    const { error: itemsError } = await supabase
+     
+    const { error: itemsError } = await (supabase as any)
       .from('order_items')
       .insert(orderItems)
 
@@ -137,9 +177,9 @@ export class RestaurantUtils {
     return order as RestaurantOrder
   }
 
-  static async updateOrderStatus(orderId: string, status: RestaurantOrder['status']): Promise<void> {
-    const supabase = createBrowserClient()
-    const { error } = await supabase
+  static async updateOrderStatus(orderId: string, status: 'pending' | 'confirmed' | 'priced' | 'assigned' | 'out_for_delivery' | 'delivered' | 'completed' | 'cancelled'): Promise<void> {
+     
+    const { error } = await (supabase as any)
       .from('orders')
       .update({
         status,
@@ -151,12 +191,12 @@ export class RestaurantUtils {
   }
 
   static async getRestaurantMetrics(): Promise<RestaurantMetrics> {
-    const supabase = createBrowserClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
     // Get orders for this restaurant
-    const { data: orders, error } = await supabase
+     
+    const { data: orders, error } = await (supabase as any)
       .from('orders')
       .select(`
         *,
@@ -172,15 +212,20 @@ export class RestaurantUtils {
     if (error) throw error
 
     const totalOrders = orders.length
-    const pendingOrders = orders.filter(o => o.status === 'pending').length
-    const completedOrders = orders.filter(o => ['delivered', 'completed'].includes(o.status)).length
-    const totalSpent = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0)
+     
+    const pendingOrders = orders.filter((o: any) => o.status === 'pending').length
+     
+    const completedOrders = orders.filter((o: any) => ['delivered', 'completed'].includes(o.status)).length
+     
+    const totalSpent = orders.reduce((sum: number, order: any) => sum + (order.total_amount || 0), 0)
     const averageOrderValue = totalOrders > 0 ? totalSpent / totalOrders : 0
 
     // Calculate most ordered products
     const productCounts: Record<string, number> = {}
-    orders.forEach(order => {
-      order.order_items?.forEach((item: any) => {
+     
+    orders.forEach((order: any) => {
+       
+      order.order_items?.forEach((item: OrderItem) => {
         const productName = item.products?.name || 'Unknown'
         productCounts[productName] = (productCounts[productName] || 0) + item.quantity
       })
@@ -226,7 +271,7 @@ export class RestaurantUtils {
     try {
       localStorage.setItem('restaurant_cart', JSON.stringify(cart))
     } catch (error) {
-      console.error('Failed to save cart to storage:', error)
+      logger.error('Failed to save cart to storage:', error)
     }
   }
 
@@ -248,13 +293,14 @@ export class RestaurantUtils {
   }
 
   static getStatusColor(status: RestaurantOrder['status']): string {
-    const colors = {
+    const colors: Record<RestaurantOrder['status'], string> = {
       pending: 'bg-yellow-100 text-yellow-800',
       confirmed: 'bg-blue-100 text-blue-800',
-      preparing: 'bg-orange-100 text-orange-800',
-      ready: 'bg-green-100 text-green-800',
-      out_for_delivery: 'bg-purple-100 text-purple-800',
+      priced: 'bg-purple-100 text-purple-800',
+      assigned: 'bg-indigo-100 text-indigo-800',
+      out_for_delivery: 'bg-orange-100 text-orange-800',
       delivered: 'bg-green-100 text-green-800',
+      completed: 'bg-gray-100 text-gray-800',
       cancelled: 'bg-red-100 text-red-800'
     }
     return colors[status] || 'bg-gray-100 text-gray-800'

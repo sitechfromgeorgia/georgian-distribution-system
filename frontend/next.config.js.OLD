@@ -1,0 +1,205 @@
+/** @type {import('next').NextConfig} */
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+  openAnalyzer: process.env.OPEN_ANALYZER === 'true',
+});
+
+const nextConfig = {
+  // Bundle Analysis Configuration
+  webpack: (config, { isServer, webpack }) => {
+    // Add bundle analyzer plugin
+    if (process.env.ANALYZE === 'true') {
+      const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+      config.plugins.push(
+        new BundleAnalyzerPlugin({
+          analyzerMode: 'static',
+          openAnalyzer: false,
+          reportFilename: 'bundle-analyzer-report.html',
+          defaultSizes: 'gzip',
+          excludeAssets: /node_modules/
+        })
+      );
+    }
+
+    // Georgian Distribution System specific webpack optimizations
+    if (!isServer) {
+      // Optimize for Georgian Distribution System use case
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+
+      // Add performance optimizations
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          // Georgian Distribution System vendor chunks
+          georgianVendors: {
+            test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+            name: 'georgian-vendors',
+            chunks: 'all',
+            priority: 10,
+          },
+          // Chart libraries for analytics
+          charts: {
+            test: /[\\/]node_modules[\\/]recharts|chart\.js|d3[\\/]/,
+            name: 'georgian-charts',
+            chunks: 'all',
+            priority: 9,
+          },
+          // UI components
+          ui: {
+            test: /[\\/]node_modules[\\/](@radix-ui|class-variance-authority|clsx|tailwind-merge)[\\/]/,
+            name: 'georgian-ui',
+            chunks: 'all',
+            priority: 8,
+          },
+          // Georgian Distribution specific components
+          gdsComponents: {
+            test: /[\\/]src[\\/](components|services|lib)[\\/](orders|products|users)[\\/]/,
+            name: 'georgian-gds',
+            chunks: 'all',
+            priority: 7,
+          },
+          default: {
+            minChunks: 2,
+            priority: -20,
+            reuseExistingChunk: true,
+          },
+        },
+      };
+
+      // Optimize for Georgian Distribution use case
+      config.optimization.usedExports = true;
+      config.optimization.sideEffects = false;
+      config.optimization. ModuleConcatenationPlugin = false;
+    }
+
+    return config;
+  },
+
+  // Performance optimizations for Georgian Distribution System
+  experimental: {
+    // Enable optimizations for production
+    optimizeCss: true,
+    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
+  },
+
+  // Compiler optimizations
+  compiler: {
+    // Remove console.logs in production for Georgian Distribution
+    console: process.env.NODE_ENV === 'production' ? false : true,
+  },
+
+  // Compression for Georgian Distribution assets
+  compress: true,
+  
+  // Images optimization for Georgian product images
+  images: {
+    formats: ['image/webp', 'image/avif'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 60 * 60 * 24 * 365, // 1 year for Georgian product images
+  },
+
+  // Headers for Georgian Distribution System
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          // CORS for Georgian Distribution API
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: process.env.NODE_ENV === 'production' 
+              ? 'https://greenland77.ge' 
+              : '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization',
+          },
+        ],
+      },
+      // Cache optimization for Georgian Distribution static assets
+      {
+        source: '/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      // Cache optimization for Georgian Distribution images
+      {
+        source: '/images/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400',
+          },
+        ],
+      },
+    ];
+  },
+
+  // Redirects for Georgian Distribution System
+  async redirects() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: '/api/:path*',
+        permanent: false,
+      },
+    ];
+  },
+
+  // Environment variables for Georgian Distribution
+  env: {
+    GEORGIAN_DISTRIBUTION_MODE: process.env.GEORGIAN_DISTRIBUTION_MODE || 'development',
+    NEXT_PUBLIC_GEORGIAN_DISTRIBUTION_API: process.env.NEXT_PUBLIC_GEORGIAN_DISTRIBUTION_API,
+  },
+
+  // Performance budget for Georgian Distribution System
+  webpackDevMiddleware: {
+    // Enable webpack-dev-middleware for better development experience
+  },
+
+  // Output optimization for Georgian Distribution
+  output: 'standalone',
+
+  // PoweredBy header for Georgian Distribution
+  poweredByHeader: false,
+
+  // Production optimizations
+  productionBrowserSourceMaps: false,
+  
+  // Enable experimental features for performance
+  experimental: {
+    ...nextConfig.experimental,
+    // Enable edge runtime for Georgian Distribution API endpoints
+    serverComponentsExternalPackages: ['@supabase/supabase-js'],
+  },
+};
+
+// Bundle analyzer configuration
+module.exports = withBundleAnalyzer(nextConfig);

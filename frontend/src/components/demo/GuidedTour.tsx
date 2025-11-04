@@ -65,9 +65,9 @@ export function GuidedTour({ step, onNext, onPrevious, onSkip }: GuidedTourProps
       <div className="fixed inset-0 bg-black bg-opacity-30 z-40 pointer-events-none" />
 
       {/* Tour Card */}
-      <div className={getPlacementStyles(step.placement)}>
-        {step.placement !== 'center' && (
-          <div className={getArrowStyles(step.placement)} />
+      <div className={getPlacementStyles(step.placement ?? 'bottom')}>
+        {(step.placement ?? 'bottom') !== 'center' && (
+          <div className={getArrowStyles(step.placement ?? 'bottom')} />
         )}
 
         <Card className="shadow-2xl border-2 border-blue-200">
@@ -113,7 +113,7 @@ export function GuidedTour({ step, onNext, onPrevious, onSkip }: GuidedTourProps
                   variant="outline"
                   size="sm"
                   onClick={onPrevious}
-                  disabled={step.id === 'welcome'}
+                  disabled={step.id === 0}
                   className="flex items-center gap-1"
                 >
                   <ChevronLeft className="h-3 w-3" />
@@ -125,7 +125,7 @@ export function GuidedTour({ step, onNext, onPrevious, onSkip }: GuidedTourProps
                   size="sm"
                   className="flex items-center gap-1"
                 >
-                  {step.id === 'conversion_cta' ? 'Get Started' : 'Next'}
+                  Next
                   <ChevronRight className="h-3 w-3" />
                 </Button>
               </div>

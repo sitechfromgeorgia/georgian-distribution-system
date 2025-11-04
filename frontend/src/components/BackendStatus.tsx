@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { checkBackendHealth, getBackendInfo, type HealthCheckResult } from '@/lib/healthCheck'
+import { checkBackendHealth, getBackendInfo, type HealthCheckResult } from '@/lib/healthCheck.client'
 import { Badge } from '@/components/ui/badge'
 import { Wifi, WifiOff, AlertCircle } from 'lucide-react'
 

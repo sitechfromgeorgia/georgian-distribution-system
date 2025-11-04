@@ -66,12 +66,14 @@ export function useDemo() {
 
   // Auto-advance demo steps
   useEffect(() => {
-    if (isActive && session?.tourSteps[currentStep]?.autoAdvance) {
-      const timer = setTimeout(() => {
-        nextStep();
-      }, session.tourSteps[currentStep].autoAdvance);
-      return () => clearTimeout(timer);
+    if (!isActive || !session?.tourSteps[currentStep]?.autoAdvance) {
+      return;
     }
+
+    const timer = setTimeout(() => {
+      nextStep();
+    }, session.tourSteps[currentStep].autoAdvance);
+    return () => clearTimeout(timer);
   }, [isActive, currentStep, session, nextStep]);
 
   return {

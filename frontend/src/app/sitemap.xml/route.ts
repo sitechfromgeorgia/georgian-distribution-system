@@ -1,6 +1,4 @@
-import { NextRequest } from 'next/server'
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   const baseUrl = 'https://greenland77.ge'
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>

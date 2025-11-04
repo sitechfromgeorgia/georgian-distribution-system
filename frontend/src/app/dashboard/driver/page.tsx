@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -11,7 +11,6 @@ import {
   DollarSign,
   Star,
   MapPin,
-  CheckCircle,
   AlertCircle,
   TrendingUp,
   Calendar,
@@ -54,7 +53,7 @@ export default function DriverDashboard() {
   const [isOnline, setIsOnline] = useState(true)
 
   // Mock data - replace with actual API calls
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     // Simulate API call
     setStats({
       todayDeliveries: 8,
@@ -85,11 +84,14 @@ export default function DriverDashboard() {
         customer_name: 'მარიამ კ.'
       }
     ])
-  }
+  }, [])
 
   useEffect(() => {
-    loadDashboardData()
-  }, [])
+    const initializeData = async () => {
+      await loadDashboardData()
+    }
+    initializeData()
+  }, [loadDashboardData])
 
   const toggleOnlineStatus = () => {
     setIsOnline(!isOnline)

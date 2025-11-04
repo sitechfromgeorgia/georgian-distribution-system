@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * Error handling utilities for Supabase connection diagnostics
  */
@@ -162,7 +164,7 @@ export function handleSupabaseError(error: Error | any, context: string): {
   
   // Log the error with context
   if (shouldLog) {
-    console.error(`[SUPABASE ERROR] ${context}:`, technicalDetails)
+    logger.error(`[SUPABASE ERROR] ${context}:`, technicalDetails)
   }
   
   return {
@@ -188,7 +190,7 @@ export function safeHandleError(error: Error | any, context: string): {
     }
   } catch (handlerError) {
     // Fallback error handling
-    console.error('Error handler failed:', handlerError)
+    logger.error('Error handler failed:', handlerError)
     return {
       userMessage: 'An unexpected error occurred. Please try again.',
       shouldRetry: true

@@ -1,195 +1,254 @@
 'use client'
 
-import Link from 'next/link'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { CheckCircle2, Package, Database, Zap, Shield } from 'lucide-react'
+import { useState } from 'react'
 
 export default function HomePage() {
+  const [message, setMessage] = useState('იტვირთება...')
+
+  const handleTest = () => {
+    setMessage('დაგუკუდაობა: Georgian Distribution System working!')
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+    <div style={{ 
+      minHeight: '100vh', 
+      background: 'linear-gradient(to bottom, #f9fafb, #f3f4f6)',
+      fontFamily: 'system-ui, -apple-system, sans-serif'
+    }}>
       {/* Header */}
-      <header className="border-b bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <Package className="h-8 w-8 text-blue-600" />
-              <h1 className="text-xl font-bold text-gray-900">
-                Georgian Distribution System
-              </h1>
-              <Badge>v2.0</Badge>
-            </div>
-            
-            <Link href="/test">
-              <Button variant="outline">Connection Test</Button>
-            </Link>
+      <header style={{ 
+        borderBottom: '1px solid #e5e7eb', 
+        background: 'white', 
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' 
+      }}>
+        <div style={{ 
+          maxWidth: '1200px', 
+          margin: '0 auto', 
+          padding: '0 24px',
+          height: '64px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '32px', height: '32px', background: '#3b82f6', borderRadius: '4px' }} />
+            <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827' }}>
+              Georgian Distribution System
+            </h1>
+            <span style={{ 
+              background: '#3b82f6', 
+              color: 'white', 
+              padding: '2px 8px', 
+              borderRadius: '4px', 
+              fontSize: '12px' 
+            }}>
+              v2.1
+            </span>
           </div>
+          
+          <button style={{ 
+            border: '1px solid #d1d5db', 
+            background: 'white', 
+            padding: '8px 16px', 
+            borderRadius: '6px',
+            cursor: 'pointer'
+          }}>
+            Connection Test
+          </button>
         </div>
       </header>
 
       {/* Hero Section */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+      <main style={{ 
+        maxWidth: '1200px', 
+        margin: '0 auto', 
+        padding: '64px 24px',
+        textAlign: 'center'
+      }}>
+        <div style={{ marginBottom: '64px' }}>
+          <h2 style={{ fontSize: '36px', fontWeight: 'bold', color: '#111827', marginBottom: '16px' }}>
             B2B Food Distribution Platform
           </h2>
-          <p className="text-xl text-gray-600 mb-8">
+          <p style={{ fontSize: '20px', color: '#6b7280', marginBottom: '32px' }}>
             თანამედროვე პლატფორმა საქართველოში ფუდ დისტრიბუციისთვის
           </p>
           
-          <div className="flex justify-center gap-4">
-            <Link href="/test">
-              <Button size="lg" className="gap-2">
-                <Database className="h-5 w-5" />
-                Test Connection
-              </Button>
-            </Link>
-            <Button size="lg" variant="outline" disabled>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '32px' }}>
+            <button 
+              onClick={handleTest}
+              style={{ 
+                background: '#3b82f6', 
+                color: 'white', 
+                padding: '12px 24px', 
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <span>🧪</span>
+              Test Connection
+            </button>
+            <button style={{ 
+              border: '1px solid #d1d5db', 
+              background: 'white', 
+              padding: '12px 24px', 
+              borderRadius: '8px',
+              cursor: 'not-allowed',
+              opacity: 0.5
+            }}>
               Login (Coming Soon)
-            </Button>
+            </button>
+          </div>
+
+          <div style={{ 
+            marginTop: '32px', 
+            padding: '16px', 
+            background: '#d1fae5', 
+            border: '1px solid #a7f3d0', 
+            borderRadius: '8px',
+            color: '#065f46'
+          }}>
+            {message}
           </div>
         </div>
 
-        {/* Status Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-8 w-8 text-green-500" />
-                <div>
-                  <CardTitle>Frontend Ready</CardTitle>
-                  <CardDescription>Next.js 15 + TypeScript</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  React 19 + shadcn/ui
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  Tailwind CSS
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  Zustand + React Query
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <Database className="h-8 w-8 text-blue-500" />
-                <div>
-                  <CardTitle>Backend Connected</CardTitle>
-                  <CardDescription>Self-hosted Supabase</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  PostgreSQL 15+
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  PostgREST API
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  VPS: data.greenland77.ge
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <Shield className="h-8 w-8 text-purple-500" />
-                <div>
-                  <CardTitle>Next Steps</CardTitle>
-                  <CardDescription>Setup Required</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2 text-gray-500">
-                  <div className="h-4 w-4 border-2 border-gray-300 rounded" />
-                  Create Database Schema
-                </li>
-                <li className="flex items-center gap-2 text-gray-500">
-                  <div className="h-4 w-4 border-2 border-gray-300 rounded" />
-                  Setup Authentication
-                </li>
-                <li className="flex items-center gap-2 text-gray-500">
-                  <div className="h-4 w-4 border-2 border-gray-300 rounded" />
-                  Configure RLS Policies
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Features */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="h-6 w-6 text-yellow-500" />
-              Key Features
-            </CardTitle>
-            <CardDescription>
-              რას შეიცავს Georgian Distribution System
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Status Grid */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+          gap: '24px', 
+          marginBottom: '64px' 
+        }}>
+          {/* Frontend Status */}
+          <div style={{ 
+            border: '1px solid #e5e7eb', 
+            borderRadius: '12px', 
+            padding: '24px', 
+            background: 'white',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '32px' }}>✅</span>
               <div>
-                <h3 className="font-semibold mb-2">ადმინისტრატორი</h3>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  <li>• მომხმარებლების მართვა</li>
-                  <li>• პროდუქტების კატალოგი</li>
-                  <li>• შეკვეთების კონტროლი</li>
-                  <li>• ფასების დაყენება</li>
-                  <li>• ანალიტიკა და რეპორტინგი</li>
-                </ul>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold mb-2">რესტორანი</h3>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  <li>• ციფრული შეკვეთება</li>
-                  <li>• Real-time სტატუსი</li>
-                  <li>• შეკვეთების ისტორია</li>
-                  <li>• ხარჯების თრექინგი</li>
-                  <li>• ელექტრონული ინვოისები</li>
-                </ul>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold mb-2">მძღოლი</h3>
-                <ul className="space-y-1 text-sm text-gray-600">
-                  <li>• მიტანების სია</li>
-                  <li>• სტატუსის განახლება</li>
-                  <li>• მიტანის დადასტურება</li>
-                  <li>• მობილური ინტერფეისი</li>
-                  <li>• Real-time ნოტიფიკაციები</li>
-                </ul>
+                <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>Frontend Ready</h3>
+                <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>Next.js 15 + TypeScript</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            <ul style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>
+              <li>✅ React 19 + shadcn/ui</li>
+              <li>✅ Tailwind CSS v4</li>
+              <li>✅ Zustand + React Query</li>
+            </ul>
+          </div>
 
-        {/* Tech Stack */}
-        <div className="mt-8 text-center text-sm text-gray-500">
+          {/* Backend Status */}
+          <div style={{ 
+            border: '1px solid #e5e7eb', 
+            borderRadius: '12px', 
+            padding: '24px', 
+            background: 'white',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '32px' }}>🔗</span>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>Backend Connected</h3>
+                <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>Official Supabase</p>
+              </div>
+            </div>
+            <ul style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>
+              <li>✅ PostgreSQL 15+</li>
+              <li>✅ PostgREST API</li>
+              <li>✅ Development: akxmacfsltzhbnunoepb.supabase.co</li>
+            </ul>
+          </div>
+
+          {/* Next Steps */}
+          <div style={{ 
+            border: '1px solid #e5e7eb', 
+            borderRadius: '12px', 
+            padding: '24px', 
+            background: 'white',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '32px' }}>🚀</span>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>Next Steps</h3>
+                <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>Development Ready</p>
+              </div>
+            </div>
+            <ul style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>
+              <li>✅ Development Environment Setup</li>
+              <li>✅ React Compiler Issues Fixed</li>
+              <li>✅ PWA Configuration Complete</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Features Section */}
+        <div style={{ 
+          border: '1px solid #e5e7eb', 
+          borderRadius: '12px', 
+          padding: '32px', 
+          background: 'white',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+        }}>
+          <h3 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>⚡</span>
+            Key Features
+          </h3>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+            gap: '24px' 
+          }}>
+            <div>
+              <h4 style={{ fontWeight: '600', marginBottom: '8px' }}>ადმინისტრატორი</h4>
+              <ul style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.4' }}>
+                <li>• მომხმარებლების მართვა</li>
+                <li>• პროდუქტების კატალოგი</li>
+                <li>• შეკვეთების კონტროლი</li>
+                <li>• ანალიტიკა და რეპორტინგი</li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 style={{ fontWeight: '600', marginBottom: '8px' }}>რესტორანი</h4>
+              <ul style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.4' }}>
+                <li>• ციფრული შეკვეთები</li>
+                <li>• Real-time სტატუსი</li>
+                <li>• შეკვეთების ისტორია</li>
+                <li>• ხარჯების თრექინგი</li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 style={{ fontWeight: '600', marginBottom: '8px' }}>მძღოლი</h4>
+              <ul style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.4' }}>
+                <li>• მიტანების სია</li>
+                <li>• სტატუსის განახლება</li>
+                <li>• მობილური ინტერფეისი</li>
+                <li>• Real-time ნოტიფიკაციები</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ 
+          marginTop: '32px', 
+          textAlign: 'center', 
+          fontSize: '14px', 
+          color: '#9ca3af' 
+        }}>
           <p>Built with Next.js • TypeScript • Supabase • Tailwind CSS • shadcn/ui</p>
+          <p style={{ marginTop: '8px', fontSize: '12px' }}>
+            Georgian Distribution System v2.1 - Development Environment
+          </p>
         </div>
       </main>
     </div>

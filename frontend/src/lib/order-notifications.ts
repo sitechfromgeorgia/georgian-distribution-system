@@ -1,10 +1,10 @@
-import { Database } from '@/types/database'
+import { logger } from '@/lib/logger'
+import { Database, OrderStatus } from '@/types/database'
 import { ORDER_STATUSES } from '@/constants'
 import { orderRealtimeManager, OrderNotification } from './realtime'
-import { createServerClient } from './supabase/server'
+import { createServerClient } from '@/lib/supabase/server'
 
 type Order = Database['public']['Tables']['orders']['Row']
-type OrderStatus = typeof ORDER_STATUSES[keyof typeof ORDER_STATUSES]
 
 /**
  * Notification configuration for different status changes
@@ -91,14 +91,14 @@ export class OrderNotificationManager {
     const config = STATUS_CHANGE_NOTIFICATIONS[configKey]
 
     if (!config) {
-      console.warn(`No notification config found for status change: ${configKey}`)
+      logger.warn(`No notification config found for status change: ${configKey}`)
       return notifications
     }
 
     // Get order details with related data
     const orderDetails = await this.getOrderDetails(orderId)
     if (!orderDetails) {
-      console.error(`Failed to get order details for notification: ${orderId}`)
+      logger.error(`Failed to get order details for notification: ${orderId}`)
       return notifications
     }
 
@@ -203,7 +203,7 @@ export class OrderNotificationManager {
       })
 
     } catch (error) {
-      console.error('Failed to send order creation notification:', error)
+      logger.error('Failed to send order creation notification:', error)
     }
   }
 
@@ -268,7 +268,7 @@ export class OrderNotificationManager {
       )
 
     } catch (error) {
-      console.error('Failed to send order assignment notifications:', error)
+      logger.error('Failed to send order assignment notifications:', error)
     }
   }
 
@@ -325,7 +325,7 @@ export class OrderNotificationManager {
       )
 
     } catch (error) {
-      console.error('Failed to send delivery status update notification:', error)
+      logger.error('Failed to send delivery status update notification:', error)
     }
   }
 
@@ -354,7 +354,7 @@ export class OrderNotificationManager {
       })
 
     } catch (error) {
-      console.error('Failed to send escalation notification:', error)
+      logger.error('Failed to send escalation notification:', error)
     }
   }
 
@@ -387,13 +387,13 @@ export class OrderNotificationManager {
         .single()
 
       if (error) {
-        console.error('Failed to get order details:', error)
+        logger.error('Failed to get order details:', error)
         return null
       }
 
       return data
     } catch (error) {
-      console.error('Error getting order details:', error)
+      logger.error('Error getting order details:', error)
       return null
     }
   }
@@ -448,7 +448,7 @@ export class OrderNotificationManager {
   ): Promise<void> {
     // TODO: Implement email sending using a service like SendGrid, Mailgun, etc.
     // For now, just log the email that would be sent
-    console.log('Email notification would be sent:', {
+    logger.info('Email notification would be sent:', {
       to: notification.recipient_id === 'admin' ? 'admin@greenland77.ge' : `${notification.recipient_id}@example.com`,
       subject: `Order Notification: ${notification.message}`,
       body: notification.message,
@@ -467,7 +467,7 @@ export class OrderNotificationManager {
         notifications.map(notification => orderRealtimeManager.sendNotification(notification))
       )
     } catch (error) {
-      console.error('Failed to send bulk notifications:', error)
+      logger.error('Failed to send bulk notifications:', error)
     }
   }
 
@@ -480,7 +480,7 @@ export class OrderNotificationManager {
   ): Promise<OrderNotification[]> {
     // TODO: Implement notification history storage and retrieval
     // For now, return empty array
-    console.log(`Getting notification history for user ${userId}, limit ${limit}`)
+    logger.info(`Getting notification history for user ${userId}, limit ${limit}`)
     return []
   }
 
@@ -489,7 +489,7 @@ export class OrderNotificationManager {
    */
   static async markNotificationRead(notificationId: string): Promise<void> {
     // TODO: Implement notification read status tracking
-    console.log(`Marking notification ${notificationId} as read`)
+    logger.info(`Marking notification ${notificationId} as read`)
   }
 
   /**
@@ -497,7 +497,7 @@ export class OrderNotificationManager {
    */
   static async getUnreadCount(userId: string): Promise<number> {
     // TODO: Implement unread count tracking
-    console.log(`Getting unread count for user ${userId}`)
+    logger.info(`Getting unread count for user ${userId}`)
     return 0
   }
 }

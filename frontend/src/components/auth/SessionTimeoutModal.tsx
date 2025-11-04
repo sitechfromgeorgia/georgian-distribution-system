@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useAuth } from '@/hooks/useAuth'
 
 interface SessionTimeoutModalProps {
   isOpen: boolean
@@ -83,19 +82,18 @@ export function SessionTimeoutModal({
   )
 }
 
-// Hook for session timeout management
+// Simplified hook for session timeout management
 export function useSessionTimeout() {
-  const { signOut } = useAuth()
   const [showModal, setShowModal] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState(0)
 
   const extendSession = () => {
-    // Refresh the session
     window.location.reload()
   }
 
   const handleSignOut = () => {
-    signOut()
+    // Simplified sign out
+    window.location.href = '/'
   }
 
   const showTimeoutWarning = (remainingSeconds: number) => {

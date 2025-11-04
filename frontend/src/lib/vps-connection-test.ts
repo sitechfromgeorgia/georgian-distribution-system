@@ -3,9 +3,12 @@
  * Tests all aspects of Supabase connectivity and functionality
  */
 
-import { supabase } from './supabase'
+import { createBrowserClient } from '@/lib/supabase'
 import { logger } from './logger'
 import { handleSupabaseError } from './error-handler'
+
+// Create Supabase client instance
+const supabase = createBrowserClient()
 
 export interface TestResult {
   name: string
@@ -139,7 +142,7 @@ async function testEnvironmentConfiguration(): Promise<TestSuite> {
 
   // Test 1.2: JWT Key validation
   try {
-    const start = Date.now()
+    const start = performance.now()
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -150,8 +153,8 @@ async function testEnvironmentConfiguration(): Promise<TestSuite> {
 
     tests.push({
       name: 'JWT Key Configuration',
-      success: isValidAnon && isValidService && !keysMatch,
-      duration: Date.now() - start,
+      success: Boolean(isValidAnon && isValidService && !keysMatch),
+      duration: Math.round(performance.now() - start),
       category: 'environment',
       details: {
         isValidAnon,
@@ -165,7 +168,7 @@ async function testEnvironmentConfiguration(): Promise<TestSuite> {
     tests.push({
       name: 'JWT Key Configuration',
       success: false,
-      duration: Date.now() - start,
+      duration: Date.now() - startTime,
       category: 'environment',
       error: error instanceof Error ? error.message : 'Unknown error'
     })
@@ -190,7 +193,7 @@ async function testEnvironmentConfiguration(): Promise<TestSuite> {
 async function testBackendAccessibility(): Promise<TestSuite> {
   const tests: TestResult[] = []
   const startTime = Date.now()
-  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://data.greenland77.ge'
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://akxmacfsltzhbnunoepb.supabase.co'
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   // Test 2.1: REST API accessibility
@@ -221,7 +224,7 @@ async function testBackendAccessibility(): Promise<TestSuite> {
     tests.push({
       name: 'REST API Endpoint',
       success: false,
-      duration: Date.now() - start,
+      duration: Date.now() - startTime,
       category: 'connection',
       error: error instanceof Error ? error.message : 'Network error'
     })
@@ -253,7 +256,7 @@ async function testBackendAccessibility(): Promise<TestSuite> {
     tests.push({
       name: 'Auth Service Health',
       success: false,
-      duration: Date.now() - start,
+      duration: Date.now() - startTime,
       category: 'connection',
       error: error instanceof Error ? error.message : 'Network error'
     })
@@ -286,7 +289,7 @@ async function testBackendAccessibility(): Promise<TestSuite> {
     tests.push({
       name: 'Storage API Endpoint',
       success: false,
-      duration: Date.now() - start,
+      duration: Date.now() - startTime,
       category: 'connection',
       error: error instanceof Error ? error.message : 'Network error'
     })
@@ -314,9 +317,9 @@ async function testAuthenticationSystem(): Promise<TestSuite> {
 
   // Test 3.1: Auth service connectivity
   try {
-    const start = Date.now()
+    const start = performance.now()
     const { data, error } = await supabase.auth.getSession()
-    const duration = Date.now() - start
+    const duration = Math.round(performance.now() - start)
 
     tests.push({
       name: 'Auth Service Connectivity',
@@ -333,7 +336,7 @@ async function testAuthenticationSystem(): Promise<TestSuite> {
     tests.push({
       name: 'Auth Service Connectivity',
       success: false,
-      duration: Date.now() - start,
+      duration: Date.now() - startTime,
       category: 'authentication',
       error: error instanceof Error ? error.message : 'Unknown error'
     })
@@ -341,22 +344,22 @@ async function testAuthenticationSystem(): Promise<TestSuite> {
 
   // Test 3.2: JWT token validation
   try {
-    const start = Date.now()
+    const start = performance.now()
     const { data: { session } } = await supabase.auth.getSession()
-    const duration = Date.now() - start
+    const duration = Math.round(performance.now() - start)
 
-    const hasValidToken = session?.access_token && 
+    const hasValidToken = session?.access_token &&
                          session.access_token.split('.').length === 3
 
     tests.push({
       name: 'JWT Token Structure',
-      success: hasValidToken,
+      success: Boolean(hasValidToken),
       duration,
       category: 'authentication',
       details: {
         hasAccessToken: !!session?.access_token,
         tokenLength: session?.access_token?.length || 0,
-        tokenStructureValid: hasValidToken
+        tokenStructureValid: Boolean(hasValidToken)
       },
       error: !hasValidToken ? 'Invalid or missing JWT token structure' : undefined
     })
@@ -364,7 +367,7 @@ async function testAuthenticationSystem(): Promise<TestSuite> {
     tests.push({
       name: 'JWT Token Structure',
       success: false,
-      duration: Date.now() - start,
+      duration: Date.now() - startTime,
       category: 'authentication',
       error: error instanceof Error ? error.message : 'Unknown error'
     })
@@ -392,12 +395,12 @@ async function testDatabaseOperations(): Promise<TestSuite> {
 
   // Test 4.1: Database connection
   try {
-    const start = Date.now()
+    const start = performance.now()
     const { data, error, count } = await supabase
       .from('profiles')
       .select('*', { count: 'exact' })
       .limit(1)
-    const duration = Date.now() - start
+    const duration = Math.round(performance.now() - start)
 
     tests.push({
       name: 'Database Connection',
@@ -415,7 +418,7 @@ async function testDatabaseOperations(): Promise<TestSuite> {
     tests.push({
       name: 'Database Connection',
       success: false,
-      duration: Date.now() - start,
+      duration: Date.now() - startTime,
       category: 'database',
       error: error instanceof Error ? error.message : 'Unknown error'
     })
@@ -423,14 +426,14 @@ async function testDatabaseOperations(): Promise<TestSuite> {
 
   // Test 4.2: RLS Policy enforcement
   try {
-    const start = Date.now()
+    const start = performance.now()
     // Try to access admin data (should be controlled by RLS)
     const { error } = await supabase
       .from('profiles')
       .select('*')
       .eq('role', 'admin')
       .limit(1)
-    const duration = Date.now() - start
+    const duration = Math.round(performance.now() - start)
 
     // Error is expected due to RLS, but CORS error indicates configuration issue
     const isCORSError = error?.message?.includes('CORS') || error?.message?.includes('fetch')
@@ -453,7 +456,7 @@ async function testDatabaseOperations(): Promise<TestSuite> {
     tests.push({
       name: 'RLS Policy Enforcement',
       success: false,
-      duration: Date.now() - start,
+      duration: Date.now() - startTime,
       category: 'database',
       error: error instanceof Error ? error.message : 'Unknown error'
     })
@@ -481,9 +484,9 @@ async function testStorageServices(): Promise<TestSuite> {
 
   // Test 5.1: Storage buckets access
   try {
-    const start = Date.now()
+    const start = performance.now()
     const { data, error } = await supabase.storage.listBuckets()
-    const duration = Date.now() - start
+    const duration = Math.round(performance.now() - start)
 
     tests.push({
       name: 'Storage Buckets Access',
@@ -500,7 +503,7 @@ async function testStorageServices(): Promise<TestSuite> {
     tests.push({
       name: 'Storage Buckets Access',
       success: false,
-      duration: Date.now() - start,
+      duration: Date.now() - startTime,
       category: 'storage',
       error: error instanceof Error ? error.message : 'Unknown error'
     })
@@ -528,7 +531,7 @@ async function testRealtimeFeatures(): Promise<TestSuite> {
 
   // Test 6.1: WebSocket connection
   try {
-    const start = Date.now()
+    const start = performance.now()
     const channel = supabase.channel('test-channel')
     let connected = false
     let errorMessage = ''
@@ -553,7 +556,7 @@ async function testRealtimeFeatures(): Promise<TestSuite> {
       })
     })
 
-    const duration = Date.now() - start
+    const duration = Math.round(performance.now() - start)
     await channel.unsubscribe()
 
     tests.push({
@@ -571,7 +574,7 @@ async function testRealtimeFeatures(): Promise<TestSuite> {
     tests.push({
       name: 'WebSocket Connection',
       success: false,
-      duration: Date.now() - start,
+      duration: Date.now() - startTime,
       category: 'realtime',
       error: error instanceof Error ? error.message : 'Connection failed'
     })
@@ -596,12 +599,12 @@ async function testRealtimeFeatures(): Promise<TestSuite> {
 async function testCORSConfiguration(): Promise<TestSuite> {
   const tests: TestResult[] = []
   const startTime = Date.now()
-  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://data.greenland77.ge'
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://akxmacfsltzhbnunoepb.supabase.co'
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   // Test 7.1: CORS preflight handling
   try {
-    const start = Date.now()
+    const start = performance.now()
     const response = await fetch(`${baseUrl}/rest/v1/profiles?select=count&limit=1`, {
       method: 'OPTIONS',
       headers: {
@@ -612,7 +615,7 @@ async function testCORSConfiguration(): Promise<TestSuite> {
         'Access-Control-Request-Headers': 'apikey, authorization'
       }
     })
-    const duration = Date.now() - start
+    const duration = Math.round(performance.now() - start)
 
     const hasCORSHeaders = response.headers.get('access-control-allow-origin') ||
                           response.headers.get('Access-Control-Allow-Origin')
@@ -635,7 +638,7 @@ async function testCORSConfiguration(): Promise<TestSuite> {
     tests.push({
       name: 'CORS Preflight Response',
       success: false,
-      duration: Date.now() - start,
+      duration: Date.now() - startTime,
       category: 'cors',
       error: error instanceof Error ? error.message : 'Network error'
     })

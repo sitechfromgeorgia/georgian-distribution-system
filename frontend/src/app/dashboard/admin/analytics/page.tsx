@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Calendar } from '@/components/ui/calendar'
@@ -15,24 +14,22 @@ import {
   DollarSign,
   ShoppingCart,
   Users,
-  Package,
   CalendarIcon,
   BarChart3,
-  PieChart,
   Activity
 } from 'lucide-react'
 import { AnalyticsDashboard } from '@/components/admin/AnalyticsDashboard'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ka } from 'date-fns/locale'
+import type { DateRange } from 'react-day-picker'
 
 export default function AnalyticsPage() {
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
     to: new Date()
   })
   const [timeRange, setTimeRange] = useState('30d')
-  const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
   const handleExportAnalytics = () => {
@@ -187,8 +184,8 @@ export default function AnalyticsPage() {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-64 justify-start text-left font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange.from ? (
-                      dateRange.to ? (
+                    {dateRange?.from ? (
+                      dateRange?.to ? (
                         <>
                           {format(dateRange.from, "dd/MM/yyyy", { locale: ka })} -{" "}
                           {format(dateRange.to, "dd/MM/yyyy", { locale: ka })}
@@ -205,9 +202,9 @@ export default function AnalyticsPage() {
                   <Calendar
                     initialFocus
                     mode="range"
-                    defaultMonth={dateRange.from}
-                    selected={dateRange as any}
-                    onSelect={(range) => setDateRange(range || { from: undefined, to: undefined })}
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={(range) => setDateRange(range)}
                     numberOfMonths={2}
                   />
                 </PopoverContent>
@@ -225,7 +222,7 @@ export default function AnalyticsPage() {
       </Card>
 
       {/* Analytics Dashboard */}
-      <AnalyticsDashboard dateRange={dateRange} />
+      <AnalyticsDashboard dateRange={dateRange || { from: undefined, to: undefined }} />
     </div>
   )
 }

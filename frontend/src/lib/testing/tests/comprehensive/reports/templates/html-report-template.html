@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Georgian Distribution System - Test Report</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        .metric {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .metric h3 {
+            margin: 0 0 10px 0;
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .metric .value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 0;
+        }
+        .passed { color: #28a745; }
+        .failed { color: #dc3545; }
+        .skipped { color: #ffc107; }
+        .partial { color: #fd7e14; }
+
+        .content {
+            padding: 30px;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .section h2 {
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .test-result {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #28a745;
+        }
+        .test-result.failed {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+        .test-result.skipped {
+            border-left-color: #ffc107;
+            background: #fffbf0;
+        }
+        .test-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .test-details {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .recommendations {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border: 1px solid #f0c674;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .recommendations h3 {
+            color: #856404;
+            margin-top: 0;
+        }
+        .recommendations ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #dee2e6;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .status-passed { background: #d4edda; color: #155724; }
+        .status-failed { background: #f8d7da; color: #721c24; }
+        .status-partial { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Georgian Distribution System</h1>
+            <p>Test Report - {{suite}}</p>
+            <div class="status-badge status-{{status}}">{{status}}</div>
+        </div>
+
+        <div class="summary">
+            <div class="metric">
+                <h3>Total Tests</h3>
+                <div class="value">{{totalTests}}</div>
+            </div>
+            <div class="metric passed">
+                <h3>Passed</h3>
+                <div class="value">{{passedTests}}</div>
+            </div>
+            <div class="metric failed">
+                <h3>Failed</h3>
+                <div class="value">{{failedTests}}</div>
+            </div>
+            <div class="metric skipped">
+                <h3>Skipped</h3>
+                <div class="value">{{skippedTests}}</div>
+            </div>
+            <div class="metric">
+                <h3>Score</h3>
+                <div class="value">{{overallScore}}%</div>
+            </div>
+            <div class="metric">
+                <h3>Duration</h3>
+                <div class="value">{{duration}}ms</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2>Test Results</h2>
+                <div id="test-results">
+                    <!-- Test results will be inserted here -->
+                </div>
+            </div>
+
+            {{#if recommendations}}
+            <div class="recommendations">
+                <h3>💡 Recommendations</h3>
+                <ul>
+                    {{#each recommendations}}
+                    <li>{{this}}</li>
+                    {{/each}}
+                </ul>
+            </div>
+            {{/if}}
+        </div>
+
+        <div class="footer">
+            <p>Report generated on {{timestamp}} | Environment: {{environment}}</p>
+            <p>Georgian Distribution System v2.1 - Comprehensive Testing Suite</p>
+        </div>
+    </div>
+
+    <script>
+        // Template data will be populated by the test runner
+        const templateData = {{jsonData}};
+
+        // Render test results
+        function renderTestResults() {
+            const container = document.getElementById('test-results');
+
+            if (templateData.results) {
+                Object.entries(templateData.results).forEach(([category, result]) => {
+                    if (result && result.results) {
+                        const categoryDiv = document.createElement('div');
+                        categoryDiv.innerHTML = `<h3>${category.charAt(0).toUpperCase() + category.slice(1)} Tests</h3>`;
+
+                        result.results.forEach(test => {
+                            const testDiv = document.createElement('div');
+                            testDiv.className = `test-result ${test.status}`;
+
+                            testDiv.innerHTML = `
+                                <div class="test-name">${test.name}</div>
+                                <div class="test-details">
+                                    Status: ${test.status} | Duration: ${test.duration}ms
+                                    ${test.error ? `<br>Error: ${test.error}` : ''}
+                                </div>
+                            `;
+
+                            categoryDiv.appendChild(testDiv);
+                        });
+
+                        container.appendChild(categoryDiv);
+                    }
+                });
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', renderTestResults);
+    </script>
+</body>
+</html>

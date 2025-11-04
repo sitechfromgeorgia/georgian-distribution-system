@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createBrowserClient } from '@/lib/supabase/client'
+import { useState, useEffect, useCallback } from 'react'
+import { createBrowserClient } from '@/lib/supabase'
 import { Database } from '@/types/database'
 import {
   Table,
@@ -18,11 +18,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ORDER_STATUSES, USER_ROLES } from '@/constants'
 import { useAuth } from '@/hooks/useAuth'
 
+// Create Supabase client instance
+const supabase = createBrowserClient()
+
+// Define Supabase realtime payload type
+interface SupabaseRealtimePayload {
+  new: { id: string; status: string }
+  old?: { id: string; status?: string }
+}
+
 type Order = Database['public']['Tables']['orders']['Row']
 type OrderWithDetails = Order & {
   restaurant?: Database['public']['Tables']['profiles']['Row']
   driver?: Database['public']['Tables']['profiles']['Row']
-  items?: Database['public']['Tables']['order_items']['Row'][]
+  items?: Database['public']['Tables']['order_items'][]
 }
 
 interface OrderTableProps {
@@ -35,9 +44,9 @@ interface OrderTableProps {
 }
 
 const statusColors = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  confirmed: 'bg-blue-100 text-blue-800',
-  priced: 'bg-purple-100 text-purple-800',
+  pending: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+  confirmed: 'bg-primary/10 text-primary',
+  priced: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
   assigned: 'bg-indigo-100 text-indigo-800',
   out_for_delivery: 'bg-orange-100 text-orange-800',
   delivered: 'bg-green-100 text-green-800',
@@ -45,13 +54,13 @@ const statusColors = {
   cancelled: 'bg-red-100 text-red-800',
 }
 
-const statusLabels = {
-  pending: 'მოყლის',
+const statusLabels: Record<string, string> = {
+  pending: 'მოლოდინში',
   confirmed: 'დადასტურებულია',
-  priced: 'ფასის დაყენილია',
-  assigned: 'მინიჭთვნილია',
-  out_for_delivery: 'გზადასტავს',
-  delivered: 'მიტყვილია',
+  priced: 'ფასირებულია',
+  assigned: 'მინიჭებულია',
+  out_for_delivery: 'გზაშია',
+  delivered: 'მიწოდებულია',
   completed: 'დასრულებულია',
   cancelled: 'გაუქმებულია',
 }
@@ -64,44 +73,20 @@ export function OrderTable({
   showActions = true,
   loading = false,
 }: OrderTableProps) {
-  const supabase = createBrowserClient()
   const { user } = useAuth()
+
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set())
 
-  // Real-time subscription for order updates
-  useEffect(() => {
-    if (!user) return
-
-    const channel = supabase
-      .channel('orders-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders',
-          filter: userRole === USER_ROLES.RESTAURANT 
-            ? `restaurant_id=eq.${user.id}`
-            : userRole === USER_ROLES.DRIVER
-            ? `driver_id=eq.${user.id}`
-            : undefined
-        },
-        (payload: any) => {
-          console.log('Order updated:', payload)
-          // Update local state to reflect real-time changes
-          if (onOrderUpdate) {
-            onOrderUpdate(payload.new.id, payload.new.status)
-          }
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [supabase, user, userRole, onOrderUpdate])
-
   const handleOrderSelect = (order: OrderWithDetails) => {
+    // Toggle selection state
+    const newSelectedOrders = new Set(selectedOrders)
+    if (newSelectedOrders.has(order.id)) {
+      newSelectedOrders.delete(order.id)
+    } else {
+      newSelectedOrders.add(order.id)
+    }
+    setSelectedOrders(newSelectedOrders)
+    
     if (onOrderSelect) {
       onOrderSelect(order)
     }
@@ -118,7 +103,7 @@ export function OrderTable({
     const label = statusLabels[status as keyof typeof statusLabels] || status
 
     return (
-      <Badge className={colorClass}>
+      <Badge className={colorClass} variant="secondary">
         {label}
       </Badge>
     )
@@ -204,12 +189,12 @@ export function OrderTable({
             <TableRow>
               <TableHead>შეკრიების #</TableHead>
               <TableHead>რესტორანი</TableHead>
+              <TableHead>მძღოლი</TableHead>
               <TableHead>სტატუსი</TableHead>
-              <TableHead>სტატუსი</TableHead>
-              <TableHead>სტატუსი</TableHead>
-              <TableHead>სტატუსი</TableHead>
-              <TableHead>სტატუსი</TableHead>
-              <TableHead>მდე</TableHead>
+              <TableHead>თანხა</TableHead>
+              <TableHead>შექმნილია</TableHead>
+              <TableHead>განახლებულია</TableHead>
+              <TableHead>შენიშვნები</TableHead>
               {showActions && <TableHead>მოქმენებები</TableHead>}
             </TableRow>
           </TableHeader>
@@ -256,7 +241,7 @@ export function OrderTable({
                   <TableCell>
                     {canUpdateStatus(order) && (
                       <div className="flex gap-2">
-                        {getAvailableStatuses(order).map(([statusKey, statusValue]) => (
+                        {getAvailableStatuses(order).map(([statusKey, statusValue]) => statusValue && (
                           <Button
                             key={statusKey}
                             variant="outline"

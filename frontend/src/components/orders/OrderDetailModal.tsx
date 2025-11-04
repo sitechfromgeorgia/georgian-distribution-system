@@ -1,11 +1,37 @@
+import Image from 'next/image'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { Clock, CheckCircle, Package, Truck, AlertCircle, User, MapPin, Phone, Mail } from 'lucide-react'
+import { Clock, CheckCircle, Package, Truck, AlertCircle, User, MapPin, Phone } from 'lucide-react'
 
 interface OrderDetailModalProps {
-  order: any
+  order: {
+    id: string
+    status: string
+    created_at: string
+    total_price?: number
+    total_amount?: number
+    delivery_address: string
+    delivery_notes?: string
+    restaurant?: {
+      name: string
+      email: string
+      phone?: string
+    }
+    driver?: {
+      full_name: string
+      phone: string
+    }
+    items?: Array<{
+      product?: {
+        name: string
+        image_url?: string
+      }
+      quantity: number
+      price?: number
+    }>
+  }
   onClose: () => void
   userRole: string
 }
@@ -73,7 +99,7 @@ export function OrderDetailModal({ order, onClose, userRole }: OrderDetailModalP
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Total Amount:</span>
-                  <span className="text-xl font-bold">₾{order.total_price?.toFixed(2) || '0.00'}</span>
+                  <span className="text-xl font-bold">₾{(order.total_price || order.total_amount || 0).toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -85,13 +111,13 @@ export function OrderDetailModal({ order, onClose, userRole }: OrderDetailModalP
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-gray-600" />
                   <div>
-                    <p className="font-medium">{order.restaurant?.name}</p>
-                    <p className="text-sm text-gray-600">{order.restaurant?.email}</p>
+                    <p className="font-medium">{order.restaurant?.name || 'N/A'}</p>
+                    <p className="text-sm text-gray-600">{order.restaurant?.email || 'N/A'}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-gray-600" />
-                  <span className="text-sm">{order.restaurant?.phone}</span>
+                  <span className="text-sm">{order.restaurant?.phone || 'N/A'}</span>
                 </div>
               </div>
             </div>
@@ -154,14 +180,16 @@ export function OrderDetailModal({ order, onClose, userRole }: OrderDetailModalP
                   </tr>
                 </thead>
                 <tbody>
-                  {order.items?.map((item: any, index: number) => (
+                  {order.items?.map((item, index: number) => (
                     <tr key={index} className="border-b">
                       <td className="p-3">
                         <div className="flex items-center gap-3">
                           {item.product?.image_url && (
-                            <img
+                            <Image
                               src={item.product.image_url}
                               alt={item.product.name}
+                              width={32}
+                              height={32}
                               className="w-8 h-8 object-cover rounded"
                             />
                           )}
@@ -171,9 +199,9 @@ export function OrderDetailModal({ order, onClose, userRole }: OrderDetailModalP
                         </div>
                       </td>
                       <td className="text-center p-3">{item.quantity}</td>
-                      <td className="text-right p-3">₾{item.price?.toFixed(2)}</td>
+                      <td className="text-right p-3">₾{(item.price || 0).toFixed(2)}</td>
                       <td className="text-right p-3 font-medium">
-                        ₾{(item.price * item.quantity).toFixed(2)}
+                        ₾{((item.price || 0) * item.quantity).toFixed(2)}
                       </td>
                     </tr>
                   ))}

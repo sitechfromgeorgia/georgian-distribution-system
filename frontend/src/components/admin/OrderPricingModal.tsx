@@ -1,4 +1,5 @@
 'use client'
+import { logger } from '@/lib/logger'
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
@@ -11,7 +12,10 @@ import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DollarSign, Calculator, Receipt } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { createBrowserClient } from '@/lib/supabase/client'
+import { createBrowserClient } from '@/lib/supabase'
+
+// Create Supabase client instance
+const supabase = createBrowserClient()
 
 interface OrderItem {
   id: string
@@ -87,8 +91,8 @@ export function OrderPricingModal({ order, open, onClose }: OrderPricingModalPro
     setLoading(true)
 
     try {
-      const supabase = createBrowserClient()
-      const { error } = await supabase
+       
+      const { error } = await (supabase as any)
         .from('orders')
         .update({
           subtotal: pricingData.subtotal,
@@ -110,7 +114,7 @@ export function OrderPricingModal({ order, open, onClose }: OrderPricingModalPro
 
       onClose()
     } catch (error) {
-      console.error('Error updating order pricing:', error)
+      logger.error('Error updating order pricing:', error)
       toast({
         title: 'შეცდომა',
         description: 'ფასის განახლება ვერ მოხერხდა',

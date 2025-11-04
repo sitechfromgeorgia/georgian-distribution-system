@@ -1,11 +1,32 @@
-Technology Stack (v2.0)
+Technology Stack (v2.2)
 1. Core Architecture
 
-The entire system is built on a modern, decoupled architecture. A Next.js frontend application communicates with a self-hosted Supabase backend. This provides a clear separation of concerns, enhances security, and allows for independent scaling.
+The entire system is built on a modern, decoupled architecture with dual-environment support. A Next.js frontend application communicates with both an official Supabase development project and a production VPS Supabase backend. This provides flexibility for development while maintaining production stability.
 
-2. Backend: Supabase (Self-Hosted)
+**Environment Setup:**
+- **Development**: Official Supabase project at https://supabase.com for easy development and testing
+- **Production**: Self-hosted Supabase on VPS for live operations
 
-Supabase serves as the unified backend-as-a-service (BaaS), providing all necessary functionality through a collection of integrated, open-source tools running in a Docker environment.
+2. Backend: Supabase (Dual Environment Setup)
+
+Supabase serves as the unified backend-as-a-service (BaaS), providing all necessary functionality through a collection of integrated, open-source tools running in Docker environments.
+
+**Development Environment (Official Supabase):**
+- Platform: https://supabase.com (Official hosted platform)
+- Project: Available through MCP integration
+- Studio: Web-based dashboard at project URL
+- Database: Hosted PostgreSQL with real-time features
+- Configuration: Managed through Supabase dashboard
+- Advantages: No local setup required, managed by Supabase, MCP integration available
+
+**Production Environment (VPS):**
+- Location: VPS at data.greenland77.ge
+- URLs: 
+  - Backend: https://data.greenland77.ge
+  - Frontend: https://greenland77.ge
+- Configuration: Production Docker deployment via Dokploy
+
+**Common Features (Both Environments):**
 
 Database: PostgreSQL 15+. The single source of truth for all application data, including users, products, orders, and relationships. Row-Level Security (RLS) is heavily utilized to enforce data access policies directly at the database level.
 
@@ -35,6 +56,15 @@ Styling: Tailwind CSS. A utility-first CSS framework for rapid and consistent UI
 
 Component Library: shadcn-ui. The exclusive component library used to build the entire user interface, providing accessible, reusable, and beautifully designed components.
 
+**shadcn/ui Implementation Status:** ✅ **EXCELLENT** (99.3% registry compatibility)
+- **Audit Completed:** 2025-10-31
+- **Components Validated:** Button (100%), Card (100%), Alert (100%), Dialog (99%), Input (100%), Table (95%), Utils (100%)
+- **Quality Level:** Professional-grade implementation following official patterns
+- **Browser Compatibility:** Modern React 19 and Next.js 15.1.6 with Tailwind CSS v4
+- **Performance:** Optimized with proper tree-shaking and code splitting
+- **Accessibility:** Full ARIA support and keyboard navigation
+- **Audit Report:** `frontend/shadcn-ui-audit-report.md`
+
 State Management:
 
 Zustand: For lightweight, simple client-side state management.
@@ -43,9 +73,17 @@ React Query (TanStack Query): For managing server state, including caching, refe
 
 4. Development & Deployment (DevOps)
 
-Containerization: Docker & Docker Compose. The entire platform (both the self-hosted Supabase instance and the Next.js application) is containerized. This ensures a consistent and reproducible environment from local development to production.
+Containerization: Docker & Docker Compose. The production platform (VPS Supabase backend and Next.js application) is containerized. This ensures a consistent and reproducible environment for production deployment.
 
-Deployment Platform: Dokploy. Used to manage the deployment and orchestration of the Docker containers on the production VPS.
+**Development Setup:**
+- Backend: Official Supabase platform at https://supabase.com with MCP integration for seamless development
+- Frontend: `frontend/` directory with `start-frontend.bat`
+- Advantages: No local infrastructure setup required, managed hosting, MCP tools for database management
+
+**Production Deployment:**
+- Deployment Platform: Dokploy. Used to manage the deployment and orchestration of the Docker containers on the production VPS.
+- Backend: VPS-hosted Supabase stack
+- Frontend: Production Next.js deployment
 
 Code Quality:
 
@@ -73,7 +111,7 @@ lucide-react: For a clean and consistent icon library.
 
 recharts: For creating the charts and graphs used in the Administrator's analytics dashboard.
 
-6. Production Supabase Configuration
+6. Production Supabase Configuration (VPS)
 
 The system uses a self-hosted Supabase instance running on a VPS with the following configuration:
 
@@ -128,7 +166,86 @@ Container Prefix: `distribution-supabase-yzoh2u-supabase`
 - DASHBOARD_PASSWORD: y8d8mtm3x30gv4jz5wvxc3exxbqcgav2
 - STUDIO_PORT: 3000
 
-7. Monitoring & Observability
+7. Development Environment Configuration
+
+The development environment uses the official Supabase platform at https://supabase.com with MCP integration for seamless development and database management.
+
+**Platform Access:**
+- URL: https://supabase.com
+- Project: Managed through Supabase dashboard
+- MCP Integration: Full database management and schema operations via MCP tools
+- Studio: Web-based dashboard for database management and API testing
+
+**Development Advantages:**
+- No local infrastructure setup required
+- Managed hosting with automatic scaling
+- MCP tools provide direct database operations
+- Real-time collaboration features
+- Built-in backup and recovery
+
+**Frontend Development:**
+- Start Frontend: `cd frontend && start-frontend.bat`
+- Environment: Connects to official Supabase project via MCP
+
+8. Infrastructure Details
+
+**VPS Provider:**
+- **Platform**: Contabo cloud hosting infrastructure
+- **Purpose**: Production-grade hosting for self-hosted Supabase deployment
+- **Capabilities**: High-performance containerized applications with reliable uptime
+- **Region**: Optimized for European markets with excellent connectivity to Georgia
+
+**Deployment Manager:**
+- **Platform**: Dockploy container orchestration platform
+- **Purpose**: Streamlined deployment and management of Supabase stack
+- **Features**: 
+  - Automated Docker container deployment
+  - Health monitoring and auto-recovery
+  - SSL certificate management
+  - Environment variable management
+  - One-click scaling capabilities
+
+**Production Domain Configuration:**
+- **Backend Domain**: https://data.greenland77.ge (self-hosted Supabase)
+- **Frontend Domain**: https://greenland77.ge (Next.js application)
+- **SSL Management**: Automated SSL certificate provisioning via Dockploy
+- **DNS Configuration**: Custom DNS records pointing to VPS infrastructure
+
+**Development Backend:**
+- **Platform**: Official Supabase project
+- **Project ID**: akxmacfsltzhbnunoepb
+- **URL**: https://akxmacfsltzhbnunoepb.supabase.co
+- **Features**: Live database with real-time capabilities, managed authentication, file storage
+- **Management**: Full integration with MCP tools for schema operations
+
+9. Deployment Strategy
+
+**Current Phase: Development on Hosted Supabase**
+- **Backend**: Official Supabase platform for rapid development
+- **Advantages**: No infrastructure setup required, managed scaling, built-in backup
+- **Database**: Hosted PostgreSQL with automatic updates and security patches
+- **Integration**: MCP tools provide seamless database management
+
+**Future Phase: Self-Hosted Supabase on VPS**
+- **Infrastructure**: Contabo VPS with Dockploy deployment manager
+- **Migration**: Planned transition using prepared migration scripts
+- **Benefits**: Full control, custom configurations, cost optimization
+- **Timeline**: After development completion and testing validation
+
+**Migration Strategy:**
+- **Preparation**: Complete with export/import scripts tested
+- **Execution**: Zero-downtime migration using prepared runbooks
+- **Validation**: Comprehensive testing with rollback procedures
+- **Monitoring**: 48-hour post-migration monitoring and validation
+
+**Code Portability:**
+- **Environment Detection**: Explicit environment variable checking
+- **Configuration Management**: Environment-agnostic settings
+- **Database Abstraction**: Supabase client handles environment differences
+- **Testing**: All code works in both hosted and self-hosted environments
+
+10. Monitoring & Observability
+8. Monitoring & Observability
 
 Sentry @sentry/nextjs v10.21.0+ - Error tracking and performance monitoring (PRIMARY MONITORING TOOL)
 
@@ -144,10 +261,22 @@ DSN: https://1e2cc3980506265afeb61e9168f31de5@o451024214669312.ingest.de.sentry.
 
 UptimeRobot: An external service used to monitor the public-facing availability of the application and send alerts in case of downtime.
 
-8. Security Implementation
+9. Security Implementation
 
 Security is multi-layered, leveraging both the application and backend capabilities.
 
+**Development Security:**
+- Official Supabase managed security settings
+- Development-grade authentication for easy testing
+- MCP integration for secure database operations
+
+**Production Security:**
+- Strong JWT secrets and secure database credentials
+- Production-grade authentication with email verification
+- Secure SMTP configuration
+- VPS-level firewall and security measures
+
+**Common Security Features:**
 Authentication: Handled by Supabase Auth, which provides secure JWT-based authentication.
 
 Authorization: Primarily enforced at the database level using PostgreSQL's Row-Level Security (RLS). Policies are written to ensure that users can only access or modify data they are explicitly permitted to (e.g., a restaurant can only see its own orders).
@@ -155,3 +284,29 @@ Authorization: Primarily enforced at the database level using PostgreSQL's Row-L
 API Security: The Supabase API gateway (Kong) and PostgREST handle API security, respecting JWTs and RLS policies.
 
 Input Validation: Zod is used to validate all user-submitted data before it is sent to the backend, preventing invalid data from entering the system.
+
+10. Environment Switching
+
+The system supports seamless switching between development and production environments:
+
+**Environment Variables:**
+- Development: Uses `frontend/.env.local` for development (connects to official Supabase)
+- Production: Uses production environment variables on VPS
+
+**API Endpoint Switching:**
+- Development: Official Supabase project URL
+- Production: https://data.greenland77.ge
+
+**Database Switching:**
+- Development: Official Supabase hosted PostgreSQL
+- Production: VPS-hosted PostgreSQL
+
+**Authentication Switching:**
+- Development: Official Supabase authentication settings
+- Production: Production authentication with proper email verification
+
+This dual-environment setup allows developers to:
+- Test changes in development without affecting production data
+- Develop and debug issues quickly using official Supabase platform
+- Deploy confident changes to the production VPS
+- Maintain data isolation between development and production

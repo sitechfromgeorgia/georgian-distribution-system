@@ -1,11 +1,11 @@
-import { Database } from '@/types/database'
+import { logger } from '@/lib/logger'
+import { Database, OrderStatus } from '@/types/database'
 import { ORDER_STATUSES, USER_ROLES } from '@/constants'
 import { OrderWorkflowEngine } from './order-workflow'
 import { OrderNotificationManager } from './order-notifications'
-import { createServerClient } from './supabase/server'
+import { createServerClient } from '@/lib/supabase/server'
 
 type Order = Database['public']['Tables']['orders']['Row']
-type OrderStatus = typeof ORDER_STATUSES[keyof typeof ORDER_STATUSES]
 type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES]
 
 /**
@@ -94,8 +94,9 @@ export class BulkOperationsManager {
     }
 
     // Validate all transitions first
+    const typedOrders = (orders || []) as Array<{ id: string; status: string; restaurant_id: string; driver_id: string | null }>
     const validationResults = await Promise.all(
-      orders.map(async (order) => {
+      typedOrders.map(async (order) => {
         const validation = await OrderWorkflowEngine.validateTransition(
           order.status as OrderStatus,
           newStatus,
@@ -232,7 +233,7 @@ export class BulkOperationsManager {
           ORDER_STATUSES.ASSIGNED,
           userId,
           userRole,
-          `Bulk assigned to ${driver.full_name}`,
+          `Bulk assigned to ${(driver as { full_name?: string } | null)?.full_name ?? 'driver'}`,
           { driver_id: driverId }
         )
 
@@ -255,7 +256,7 @@ export class BulkOperationsManager {
     }
 
     // Send assignment notifications
-    if (result.successful > 0) {
+    if (result.successful > 0 && orderIds[0]) {
       await OrderNotificationManager.notifyOrderAssigned(orderIds[0], driverId) // Simplified - send for first order
     }
 
@@ -307,10 +308,10 @@ export class BulkOperationsManager {
   static async getBulkOperationPreview(
     orderIds: string[],
     operation: 'status_update' | 'assign_driver' | 'cancel' | 'confirm',
-    newStatus?: OrderStatus,
-    driverId?: string,
     userId: string,
-    userRole: UserRole
+    userRole: UserRole,
+    newStatus?: OrderStatus,
+    driverId?: string
   ): Promise<{
     valid: boolean
     preview: Array<{
@@ -340,8 +341,9 @@ export class BulkOperationsManager {
       }
     }
 
+    const typedOrders2 = (orders || []) as Array<{ id: string; status: string; restaurant_id: string; driver_id: string | null }>
     const preview = await Promise.all(
-      orders.map(async (order) => {
+      typedOrders2.map(async (order) => {
         let targetStatus = newStatus
 
         // Determine target status based on operation
@@ -366,7 +368,7 @@ export class BulkOperationsManager {
           targetStatus!,
           userRole,
           userId,
-          order
+          order as unknown as Order
         )
 
         return {
@@ -442,7 +444,7 @@ export class BulkOperationsManager {
         }
       }])
     } catch (error) {
-      console.error('Failed to send bulk operation notification:', error)
+      logger.error('Failed to send bulk operation notification:', error)
     }
   }
 

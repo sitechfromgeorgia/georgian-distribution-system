@@ -1,31 +1,71 @@
-// 🚫 API ROUTE DEPRECATED - SUPABASE OPTIMIZATION
-// 
-// This API route has been REMOVED as Supabase handles CSRF protection natively.
-// 
-// USE: No custom CSRF implementation needed
-//
-// Supabase Auth automatically provides CSRF protection for all authentication flows.
-// This endpoint is no longer needed.
-//
-// 📖 Migration Guide:
-// 1. Remove all useCSRF() hook usage
-// 2. Remove all CSRF token generation/validation logic
-// 3. Use direct Supabase Auth calls without CSRF concerns
-// 4. Supabase handles CSRF protection automatically
+/**
+ * CSRF Protection API Route
+ * Implements CSRF token generation and validation
+ */
 
+import { logger } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server'
+import { getCsrfToken } from '@/lib/csrf'
 
-export async function GET(request: NextRequest) {
-  return NextResponse.json(
-    { 
-      error: 'API Deprecated',
-      message: 'CSRF protection is handled automatically by Supabase Auth',
-      migration: {
-        from: 'GET /api/csrf',
-        to: 'No CSRF implementation needed - Supabase handles it automatically',
-        documentation: 'https://supabase.com/docs/guides/auth/auth-email'
-      }
-    },
-    { status: 410 } // Gone
-  )
+export async function GET() {
+  try {
+    const csrfToken = getCsrfToken()
+    
+    return NextResponse.json({
+      csrfToken,
+      token: csrfToken,
+      valid: true
+    })
+  } catch (error) {
+    logger.error('CSRF token generation failed:', error)
+    return NextResponse.json(
+      { 
+        error: 'Failed to generate CSRF token',
+        valid: false 
+      },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { csrfToken } = body
+    
+    if (!csrfToken) {
+      return NextResponse.json(
+        { error: 'CSRF token is required', valid: false },
+        { status: 400 }
+      )
+    }
+    
+    // Validate CSRF token
+    const isValid = validateCsrfToken(csrfToken)
+    
+    return NextResponse.json({
+      valid: isValid,
+      csrfToken: isValid ? getCsrfToken() : null
+    })
+  } catch (error) {
+    logger.error('CSRF validation failed:', error)
+    return NextResponse.json(
+      { 
+        error: 'CSRF validation failed',
+        valid: false 
+      },
+      { status: 500 }
+    )
+  }
+}
+
+// Helper function to validate CSRF token
+function validateCsrfToken(token: string): boolean {
+  if (!token || typeof token !== 'string') {
+    return false
+  }
+  
+  // Basic token validation - in production, implement more robust validation
+  const tokenPattern = /^[a-zA-Z0-9]{32,64}$/
+  return tokenPattern.test(token)
 }

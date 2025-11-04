@@ -81,7 +81,7 @@ export function DemoCTA() {
                   <span>Demo Preview</span>
                 </CardTitle>
                 <CardDescription>
-                  What you'll experience in our demo
+                  What you&apos;ll experience in our demo
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

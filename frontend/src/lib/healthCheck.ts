@@ -1,4 +1,6 @@
-import { supabase } from './supabase'
+import { createBrowserClient } from '@/lib/supabase'
+
+const supabase = createBrowserClient()
 
 export interface HealthCheckResult {
   status: 'healthy' | 'unhealthy' | 'unknown'

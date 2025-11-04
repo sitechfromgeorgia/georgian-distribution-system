@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server';
 import { DemoUtils } from '@/lib/demo-utils';
 
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
     await DemoUtils.attemptConversion(session.id, 'demo_user_id', conversionType);
 
     // Mock storing contact information
-    console.log('Demo conversion tracked:', {
+    logger.info('Demo conversion tracked:', {
       sessionId: session.id,
       conversionType,
       contactInfo
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
       conversion_type: conversionType
     });
   } catch (error) {
-    console.error('Demo conversion error:', error);
+    logger.error('Demo conversion error:', error);
     return NextResponse.json(
       { error: 'Failed to track conversion' },
       { status: 500 }
@@ -57,7 +58,7 @@ export async function GET() {
       }
     });
   } catch (error) {
-    console.error('Demo conversion status error:', error);
+    logger.error('Demo conversion status error:', error);
     return NextResponse.json(
       { error: 'Failed to get conversion status' },
       { status: 500 }

@@ -1,4 +1,4 @@
-# **Georgian Distribution System - Product Description (v2.0)**
+# **Georgian Distribution System - Product Description (v2.1)**
 
 ## **Why This Project Exists**
 
@@ -23,6 +23,16 @@ The Georgian Distribution System was engineered to be the definitive digital sol
 *   **Problem:** Delivery instructions are often verbal or paper-based, leading to confusion and errors. There is no formal process for confirming deliveries.
 *   **Solution: Clarity & Accountability.** A clear, mobile-friendly task list showing all assigned deliveries. Drivers can update the delivery status with a single tap, creating a digital handshake between the driver and the restaurant, which formalizes the delivery confirmation process.
 
+### **For Developers (New Addition)**
+
+*   **Problem:** Testing and development previously required VPS access, making development slow and risky for production data.
+*   **Solution: Complete Local Development Environment.** The system now includes a Docker-based local Supabase environment that allows developers to:
+  - Test all features locally without affecting production
+  - Develop and debug issues quickly in a safe environment  
+  - Work offline without internet connectivity
+  - Reset and restart development environment easily
+  - Make confident changes before deploying to production
+
 ## **How It Works: The Digital Workflow**
 
 ### **The Order & Pricing Lifecycle**
@@ -35,6 +45,13 @@ The Georgian Distribution System was engineered to be the definitive digital sol
     *   The restaurant then provides a final confirmation of receipt in their own interface.
 6.  **Order Completion:** The transaction is marked as "Completed." Final prices are recorded and visible in the restaurant's order history, and the administrator's analytics are updated.
 
+### **Development Workflow (New Addition)**
+1.  **Local Environment Setup:** Developers start with `supabase-local/start.bat` to launch the complete backend stack locally
+2.  **Frontend Development:** Local Next.js development with hot-reload and instant feedback
+3.  **Database Management:** Full Supabase Studio access at http://localhost:3001 for database management
+4.  **Testing:** Complete testing of all features in isolated local environment
+5.  **Production Deployment:** Confident deployment to VPS after local validation
+
 ### **Attracting New Clients**
 *   **Public Portal & Demo Account:** The system includes a public-facing landing page that showcases its benefits. Potential clients can log into a read-only "Demo Account" to explore the restaurant dashboard and understand the value of partnering with the distributor.
 
@@ -44,16 +61,35 @@ The Georgian Distribution System was engineered to be the definitive digital sol
 *   **Real-time Engine:** Utilizes **Supabase Realtime (via WebSockets)** to push instant notifications and status updates to all users, ensuring everyone has the most current information.
 *   **Modern Web Stack:** Built on **Next.js** for a fast, reliable, and responsive user experience.
 *   **Consistent UI/UX:** The entire interface is built with **shadcn-ui**, providing a clean, modern, and intuitive design system.
+*   **Dual Environment Architecture:** **Local development** with Docker-based Supabase for easy testing, **Production** with VPS-hosted Supabase for live operations.
 
 ### **User Experience**
 *   **Accessibility:** A mobile-first design ensures full functionality on any device—desktop, tablet, or smartphone. The platform will support both **Georgian and English** languages.
 *   **Performance:** Engineered for fast loading times and responsiveness, even on slower internet connections common in the region.
 *   **Simplicity:** Each interface is tailored to the specific needs of its user role, removing unnecessary complexity and making tasks as intuitive as possible.
+*   **Development Speed:** Local environment enables rapid development cycles and immediate feedback for developers.
 
 ### **Security**
 *   **Role-Based Access Control (RBAC):** Users can only see and interact with the data and features relevant to their specific role, ensuring data integrity and confidentiality.
 *   **Secure Authentication:** All user accounts are protected by modern authentication standards using Supabase Auth, built on JWT tokens and secure session management.
 *   **Data Integrity:** All interactions are validated to prevent erroneous data entry, and a digital trail is maintained for all orders.
+*   **Development Security:** Local environment uses development-grade security suitable for testing, while production maintains enterprise-level security standards.
+
+## **Development Environment Benefits**
+
+### **Local Development Advantages**
+*   **Complete Offline Capability:** No internet required for development and testing
+*   **Instant Feedback:** Hot-reload development with immediate visual feedback
+*   **Safe Testing:** Database changes and experiments don't affect production
+*   **Easy Reset:** One-command environment reset for clean slate development
+*   **Full Feature Parity:** Local environment mirrors production functionality
+*   **Better Developer Experience:** No deployment wait times or staging complexity
+
+### **Environment Management**
+*   **Seamless Switching:** Easy switching between local and production environments
+*   **Data Isolation:** Complete separation between development and production data
+*   **Configuration Management:** Separate environment variables for each context
+*   **Consistent Testing:** Same code behavior in both local and production environments
 
 ## **Target Market**
 
@@ -61,3 +97,26 @@ This system is purpose-built for the Georgian food distribution ecosystem, inclu
 *   Small to medium-sized restaurants, cafes, and hotels.
 *   Independent food distributors seeking to modernize and scale their operations.
 *   The drivers and logistics personnel who support them.
+*   **Development teams** who need a robust, local development environment for efficient software development and testing.
+
+## **Technical Architecture Benefits**
+
+### **Dual Environment Strategy**
+*   **Local Development:** Docker-based Supabase in `supabase-local/` directory
+*   **Production Deployment:** VPS-hosted Supabase with Dokploy orchestration
+*   **Frontend Flexibility:** Next.js app can connect to either environment seamlessly
+*   **Database Flexibility:** Easy migration between local and production databases
+
+### **Key Service URLs**
+**Local Environment:**
+- Frontend: http://localhost:3000
+- Supabase Studio: http://localhost:3001  
+- API Gateway: http://localhost:8000
+- Database: localhost:5432
+
+**Production Environment:**
+- Frontend: https://greenland77.ge
+- Backend: https://data.greenland77.ge
+- Database: VPS-hosted PostgreSQL
+
+This dual-environment approach ensures developers can work efficiently while maintaining production stability and security.

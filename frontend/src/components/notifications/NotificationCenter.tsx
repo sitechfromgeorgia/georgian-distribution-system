@@ -36,7 +36,9 @@ function NotificationItem({ notification, onMarkRead, onDismiss }: NotificationI
   }
 
   const getPriorityColor = () => {
-    switch (notification.data?.priority) {
+     
+    const priority = (notification.data as any)?.priority as string | undefined
+    switch (priority) {
       case 'urgent':
         return 'destructive'
       case 'high':
@@ -50,7 +52,7 @@ function NotificationItem({ notification, onMarkRead, onDismiss }: NotificationI
 
   return (
     <div className="flex items-start space-x-3 p-3 border-b last:border-b-0">
-      <div className={`p-2 rounded-full ${notification.data?.priority === 'urgent' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+      <div className={`p-2 rounded-full ${notification.data?.priority === 'urgent' ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'}`}>
         {getIcon()}
       </div>
 
@@ -60,7 +62,7 @@ function NotificationItem({ notification, onMarkRead, onDismiss }: NotificationI
             {notification.message}
           </p>
           <Badge variant={getPriorityColor()} className="ml-2 text-xs">
-            {notification.data?.priority || 'low'}
+            {String(((notification.data as any)?.priority) ?? 'low')}
           </Badge>
         </div>
 
@@ -73,9 +75,9 @@ function NotificationItem({ notification, onMarkRead, onDismiss }: NotificationI
           </p>
         </div>
 
-        {notification.data?.restaurant_name && (
+        {Boolean((notification.data as any)?.restaurant_name) && (
           <p className="text-xs text-gray-500 mt-1">
-            {notification.data.restaurant_name}
+            {String((notification.data as any)?.restaurant_name)}
           </p>
         )}
       </div>
@@ -119,7 +121,7 @@ export function NotificationCenter() {
     })
 
     return () => {
-      unsubscribeFromNotifications?.()
+      unsubscribe()
     }
   }, [user?.id, subscribe])
 

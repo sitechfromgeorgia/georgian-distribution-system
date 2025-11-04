@@ -15,19 +15,19 @@ export function DemoLimitations() {
     {
       icon: Database,
       title: 'Limited Data',
-      description: `Maximum ${DEMO_LIMITATIONS.max_orders} orders, ${DEMO_LIMITATIONS.max_users} users, ${DEMO_LIMITATIONS.max_products} products`,
+      description: 'Demo contains a limited subset of sample orders, users, and products.',
       type: 'info'
     },
     {
       icon: Lock,
       title: 'Read-Only Features',
-      description: `Some features are disabled: ${DEMO_LIMITATIONS.features_disabled.join(', ')}`,
+      description: 'Some write operations are disabled in demo mode.',
       type: 'warning'
     },
     {
       icon: AlertTriangle,
       title: 'Session Timeout',
-      description: `Demo session expires in ${DEMO_LIMITATIONS.session_timeout_hours} hours`,
+      description: 'Demo sessions automatically expire after a short period.',
       type: 'warning'
     },
     {

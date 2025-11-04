@@ -1,8 +1,9 @@
+import { logger } from '@/lib/logger'
 import { Database } from '@/types/database'
 import { ORDER_STATUSES, USER_ROLES } from '@/constants'
 import { OrderBusinessLogic } from './business-logic'
 import { orderRealtimeManager, OrderNotification } from './realtime'
-import { createServerClient } from './supabase/server'
+import { createServerClient } from '@/lib/supabase/server'
 
 type Order = Database['public']['Tables']['orders']['Row']
 type OrderUpdate = Database['public']['Tables']['orders']['Update']
@@ -300,7 +301,7 @@ export class OrderWorkflowEngine {
       }
 
       // Execute the update
-      const { data: updatedOrder, error: updateError } = await supabase
+      const { data: updatedOrder, error: updateError } = await (supabase as any)
         .from('orders')
         .update(updateData)
         .eq('id', orderId)
@@ -308,8 +309,12 @@ export class OrderWorkflowEngine {
         .single() as { data: Order | null; error: any }
 
       if (updateError) {
-        console.error('Failed to update order status:', updateError)
+        logger.error('Failed to update order status:', updateError)
         return { success: false, error: 'Failed to update order status' }
+      }
+
+      if (!updatedOrder) {
+        return { success: false, error: 'Order update returned no data' }
       }
 
       // Log the status change for audit
@@ -333,7 +338,7 @@ export class OrderWorkflowEngine {
       }
 
     } catch (error) {
-      console.error('Status change execution error:', error)
+      logger.error('Status change execution error:', error)
       return { success: false, error: 'Internal error during status change' }
     }
   }
@@ -394,7 +399,7 @@ export class OrderWorkflowEngine {
       }
 
     } catch (error) {
-      console.error('Workflow automation error:', error)
+      logger.error('Workflow automation error:', error)
     }
   }
 
@@ -427,7 +432,7 @@ export class OrderWorkflowEngine {
         }
       }
     } catch (error) {
-      console.error('Auto-complete check error:', error)
+      logger.error('Auto-complete check error:', error)
     }
   }
 
@@ -465,7 +470,7 @@ export class OrderWorkflowEngine {
         }
       }
     } catch (error) {
-      console.error('Escalation check error:', error)
+      logger.error('Escalation check error:', error)
     }
   }
 
@@ -515,7 +520,7 @@ export class OrderWorkflowEngine {
     notes?: string
   ): Promise<void> {
     try {
-      console.log('Order status change audit:', {
+      logger.info('Order status change audit:', {
         order_id: oldOrder.id,
         old_status: oldOrder.status,
         new_status: newOrder.status,
@@ -528,7 +533,7 @@ export class OrderWorkflowEngine {
       // await supabase.from('order_status_history').insert({ ... })
 
     } catch (error) {
-      console.error('Failed to log status change:', error)
+      logger.error('Failed to log status change:', error)
     }
   }
 
@@ -580,8 +585,8 @@ export class OrderWorkflowEngine {
           error: any
         }
 
-      const restaurantName = orderDetails?.data?.profiles?.restaurant_name || orderDetails?.data?.profiles?.full_name || 'Unknown Restaurant'
-      const driverName = orderDetails?.data?.profiles ? orderDetails.data.profiles.full_name : null
+      const restaurantName = orderDetails?.profiles?.restaurant_name || orderDetails?.profiles?.full_name || 'Unknown Restaurant'
+      const driverName = orderDetails?.profiles ? orderDetails.profiles.full_name : null
 
       // Create notifications for each recipient type
       for (const recipientType of transition.notifications.recipients) {
@@ -590,13 +595,13 @@ export class OrderWorkflowEngine {
 
         switch (recipientType) {
           case 'restaurant':
-            if (!orderDetails?.data?.restaurant_id) continue
-            recipientId = orderDetails.data.restaurant_id
+            if (!orderDetails?.restaurant_id) continue
+            recipientId = orderDetails.restaurant_id
             recipientRole = 'restaurant'
             break
           case 'driver':
-            if (!orderDetails?.data?.driver_id) continue
-            recipientId = orderDetails.data.driver_id
+            if (!orderDetails?.driver_id) continue
+            recipientId = orderDetails.driver_id
             recipientRole = 'driver'
             break
           case 'admin':
@@ -651,7 +656,7 @@ export class OrderWorkflowEngine {
       return notifications
 
     } catch (error) {
-      console.error('Failed to send status change notifications:', error)
+      logger.error('Failed to send status change notifications:', error)
       return []
     }
   }
@@ -717,7 +722,7 @@ export class OrderWorkflowEngine {
           error: any
         }
 
-      if (!orders?.data) {
+      if (!orders) {
         return {
           averageCompletionTime: 0,
           statusDistribution: {},
@@ -726,7 +731,7 @@ export class OrderWorkflowEngine {
         }
       }
 
-      const ordersData = orders.data
+      const ordersData = orders
 
       // Calculate status distribution
       const statusDistribution: Record<string, number> = {}
@@ -760,7 +765,7 @@ export class OrderWorkflowEngine {
       }
 
     } catch (error) {
-      console.error('Failed to get workflow stats:', error)
+      logger.error('Failed to get workflow stats:', error)
       return {
         averageCompletionTime: 0,
         statusDistribution: {},

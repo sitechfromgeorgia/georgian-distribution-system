@@ -11,21 +11,9 @@ import { Plus, Search, Filter, Download, Upload, Package, TrendingUp, AlertTrian
 import { ProductTable } from '@/components/admin/ProductTable'
 import { ProductForm } from '@/components/admin/ProductForm'
 import { useToast } from '@/hooks/use-toast'
+import { Product } from '@/types/database'
 
-interface Product {
-  id: string
-  name: string
-  description: string
-  price: number
-  cost_price: number
-  category: string
-  stock_quantity: number
-  min_stock_level: number
-  is_active: boolean
-  image_url?: string
-  created_at: string
-  updated_at: string
-}
+type ProductForm = NonNullable<Product>
 
 export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState('')

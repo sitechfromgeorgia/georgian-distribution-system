@@ -6,7 +6,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { supabase } from '@/lib/supabase'
+import { createBrowserClient } from '@/lib/supabase'
+
+// Create Supabase client instance
+const supabase = createBrowserClient()
 
 interface PasswordResetFormProps {
   onBack: () => void

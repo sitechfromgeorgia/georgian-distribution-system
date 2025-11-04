@@ -1,9 +1,9 @@
 'use client'
+import { logger } from '@/lib/logger'
 
-import { useState, useEffect } from 'react'
-import { createBrowserClient } from '@/lib/supabase/client'
+import { useState, useEffect, useCallback } from 'react'
+import { createBrowserClient } from '@/lib/supabase'
 import { Database } from '@/types/database'
-import { OrderCard } from './OrderCard'
 import { OrderDetailModal } from './OrderDetailModal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,6 +15,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Search, Filter, Plus, Download, Eye, Edit, Trash2, Package, Truck, CheckCircle, Clock, AlertCircle } from 'lucide-react'
 
+// Create Supabase client instance
+const supabase = createBrowserClient()
+
 type Order = Database['public']['Tables']['orders']['Row']
 type OrderWithDetails = Order & {
   restaurant: Database['public']['Tables']['profiles']['Row'] | null
@@ -25,12 +28,11 @@ type OrderWithDetails = Order & {
 }
 
 interface OrderManagementClientProps {
-  user: any
+  user: Database['public']['Tables']['profiles']['Row']
   role: string
 }
 
 export function OrderManagementClient({ user, role }: OrderManagementClientProps) {
-  const supabase = createBrowserClient()
   const [orders, setOrders] = useState<OrderWithDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null)
@@ -41,12 +43,8 @@ export function OrderManagementClient({ user, role }: OrderManagementClientProps
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false)
   const [pricingOrder, setPricingOrder] = useState<OrderWithDetails | null>(null)
 
- // Fetch orders
- useEffect(() => {
-    fetchOrders()
- }, [user, role])
-
-  const fetchOrders = async () => {
+  // Fetch orders
+  const fetchOrders = useCallback(async () => {
     setLoading(true)
     try {
       let query = supabase
@@ -73,20 +71,24 @@ export function OrderManagementClient({ user, role }: OrderManagementClientProps
       const { data, error } = await query
 
       if (error) {
-        console.error('Error fetching orders:', error)
+        logger.error('Error fetching orders:', error)
       } else {
         setOrders(data || [])
       }
     } catch (error) {
-      console.error('Error:', error)
+      logger.error('Error:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [user, role])
+
+  useEffect(() => {
+    fetchOrders()
+  }, [fetchOrders])
 
   // Filter orders
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = 
+    const matchesSearch =
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.restaurant?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.restaurant?.restaurant_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -99,8 +101,8 @@ export function OrderManagementClient({ user, role }: OrderManagementClientProps
 
   // Handle order selection
   const handleOrderSelect = (orderId: string) => {
-    setSelectedOrders(prev => 
-      prev.includes(orderId) 
+    setSelectedOrders(prev =>
+      prev.includes(orderId)
         ? prev.filter(id => id !== orderId)
         : [...prev, orderId]
     )
@@ -164,7 +166,7 @@ export function OrderManagementClient({ user, role }: OrderManagementClientProps
             {filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''}
           </p>
         </div>
-        
+
         {role === 'admin' && (
           <Button onClick={() => window.location.href = '/orders/new'}>
             <Plus className="h-4 w-4 mr-2" />
@@ -193,7 +195,7 @@ export function OrderManagementClient({ user, role }: OrderManagementClientProps
                 />
               </div>
             </div>
-            
+
             <div className="w-48">
               <label htmlFor="status" className="block text-sm font-medium mb-1">Status</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -309,7 +311,7 @@ export function OrderManagementClient({ user, role }: OrderManagementClientProps
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        
+
                         {role === 'admin' && (
                           <>
                             <Button
@@ -319,7 +321,7 @@ export function OrderManagementClient({ user, role }: OrderManagementClientProps
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            
+
                             <Button
                               variant="ghost"
                               size="sm"
@@ -346,8 +348,9 @@ export function OrderManagementClient({ user, role }: OrderManagementClientProps
             <DialogTitle>Order Details</DialogTitle>
           </DialogHeader>
           {selectedOrder && (
-            <OrderDetailModal 
-              order={selectedOrder}
+            <OrderDetailModal
+               
+              order={selectedOrder as any}
               onClose={() => setIsDetailModalOpen(false)}
               userRole={role}
             />
@@ -390,7 +393,7 @@ export function OrderManagementClient({ user, role }: OrderManagementClientProps
                   {pricingOrder.items.map((item, index) => (
                     <div key={index} className="flex items-center justify-between p-4 border rounded">
                       <div>
-                        <p className="font-medium">{item.product?.name}</p>
+                        <p className="font-medium">{(item as any).product?.name}</p>
                         <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                       </div>
                       <div className="text-right">

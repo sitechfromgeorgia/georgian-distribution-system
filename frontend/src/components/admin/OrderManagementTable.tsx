@@ -1,6 +1,7 @@
 'use client'
+import { logger } from '@/lib/logger'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -10,36 +11,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card'
 import {
   MoreHorizontal,
-  Edit,
   Eye,
-  Truck,
-  CheckCircle,
-  XCircle,
-  Clock,
-  AlertTriangle,
   DollarSign
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { createBrowserClient } from '@/lib/supabase/client'
+import { createBrowserClient } from '@/lib/supabase'
+import { Database } from '@/types/database'
 import { format } from 'date-fns'
 import { ka } from 'date-fns/locale'
 
-interface Order {
-  id: string
-  customer_name: string
-  customer_phone: string
-  customer_email: string
-  delivery_address: string
-  delivery_date: string
-  delivery_time: string
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'picked_up' | 'delivered' | 'cancelled'
-  total_amount: number
-  items: any[]
-  created_at: string
-  updated_at: string
+type Order = Database['public']['Tables']['orders']['Row'] & {
+  restaurants?: { name: string } | null
+  drivers?: { full_name: string } | null
   restaurant_name?: string
   driver_name?: string
 }
+
+import { OrderStatus } from '@/types/database'
+
+// Create Supabase client instance
+const supabase = createBrowserClient()
 
 interface OrderManagementTableProps {
   searchTerm: string
@@ -47,16 +38,6 @@ interface OrderManagementTableProps {
   dateRange: { from?: Date; to?: Date }
   onViewOrder: (order: Order) => void
   onEditPricing: (order: Order) => void
-}
-
-const statusConfig = {
-  pending: { label: 'მოლოდინში', color: 'secondary', icon: Clock },
-  confirmed: { label: 'დადასტურებული', color: 'default', icon: CheckCircle },
-  preparing: { label: 'მზადება', color: 'warning', icon: AlertTriangle },
-  ready: { label: 'მზადაა', color: 'default', icon: CheckCircle },
-  picked_up: { label: 'გატანილია', color: 'default', icon: Truck },
-  delivered: { label: 'მიტანილია', color: 'default', icon: CheckCircle },
-  cancelled: { label: 'გაუქმებული', color: 'destructive', icon: XCircle }
 }
 
 export function OrderManagementTable({
@@ -77,14 +58,9 @@ export function OrderManagementTable({
 
   const itemsPerPage = 20
 
-  useEffect(() => {
-    fetchOrders()
-  }, [searchTerm, statusFilter, dateRange, currentPage, sortBy, sortOrder])
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true)
-      const supabase = createBrowserClient()
 
       let query = supabase
         .from('orders')
@@ -96,7 +72,7 @@ export function OrderManagementTable({
 
       // Apply search filter
       if (searchTerm) {
-        query = query.or(`id.ilike.%${searchTerm}%,customer_name.ilike.%${searchTerm}%,customer_phone.ilike.%${searchTerm}%`)
+        query = query.or(`id.ilike.%${searchTerm}%,delivery_address.ilike.%${searchTerm}%`)
       }
 
       // Apply status filter
@@ -124,16 +100,22 @@ export function OrderManagementTable({
 
       if (error) throw error
 
-      const formattedOrders = data?.map(order => ({
+      // Explicitly type the query result to fix TypeScript inference issues
+      type QueryResult = Array<Database['public']['Tables']['orders']['Row'] & {
+        restaurants?: { name: string } | null
+        drivers?: { full_name: string } | null
+      }>
+
+      const formattedOrders = (data as QueryResult || []).map(order => ({
         ...order,
         restaurant_name: order.restaurants?.name,
         driver_name: order.drivers?.full_name
-      })) || []
+      }))
 
       setOrders(formattedOrders)
       setTotalPages(Math.ceil((count || 0) / itemsPerPage))
     } catch (error) {
-      console.error('Error fetching orders:', error)
+      logger.error('Error fetching orders:', error)
       toast({
         title: 'შეცდომა',
         description: 'შეკვეთების ჩატვირთვა ვერ მოხერხდა',
@@ -142,7 +124,11 @@ export function OrderManagementTable({
     } finally {
       setLoading(false)
     }
-  }
+  }, [searchTerm, statusFilter, dateRange, currentPage, sortBy, sortOrder, toast])
+
+  useEffect(() => {
+    fetchOrders()
+  }, [fetchOrders])
 
   const handleSelectOrder = (orderId: string, checked: boolean) => {
     if (checked) {
@@ -160,15 +146,16 @@ export function OrderManagementTable({
     }
   }
 
-  const handleStatusChange = async (orderId: string, newStatus: Order['status']) => {
+  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     try {
-      const supabase = createBrowserClient()
-      const { error } = await supabase
-        .from('orders')
-        .update({
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
+      const updateData = {
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      }
+
+      const { error } = await (supabase
+        .from('orders') as any)
+        .update(updateData)
         .eq('id', orderId)
 
       if (error) throw error
@@ -180,7 +167,7 @@ export function OrderManagementTable({
 
       fetchOrders()
     } catch (error) {
-      console.error('Error updating order status:', error)
+      logger.error('Error updating order status:', error)
       toast({
         title: 'შეცდომა',
         description: 'სტატუსის განახლება ვერ მოხერხდა',
@@ -189,15 +176,16 @@ export function OrderManagementTable({
     }
   }
 
-  const handleBulkStatusUpdate = async (newStatus: Order['status']) => {
+  const handleBulkStatusUpdate = async (newStatus: OrderStatus) => {
     try {
-      const supabase = createBrowserClient()
-      const { error } = await supabase
-        .from('orders')
-        .update({
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
+      const updateData = {
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      }
+
+      const { error } = await (supabase
+        .from('orders') as any)
+        .update(updateData)
         .in('id', selectedOrders)
 
       if (error) throw error
@@ -210,7 +198,7 @@ export function OrderManagementTable({
       fetchOrders()
       setSelectedOrders([])
     } catch (error) {
-      console.error('Error bulk updating orders:', error)
+      logger.error('Error bulk updating orders:', error)
       toast({
         title: 'შეცდომა',
         description: 'შეკვეთების განახლება ვერ მოხერხდა',
@@ -225,7 +213,7 @@ export function OrderManagementTable({
     const hoursDiff = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60)
 
     if (hoursDiff > 2 && order.status === 'pending') return 'destructive'
-    if (hoursDiff > 1 && ['confirmed', 'preparing'].includes(order.status)) return 'warning'
+    if (hoursDiff > 1 && ['confirmed', 'priced'].includes(order.status)) return 'warning'
     return 'default'
   }
 
@@ -255,15 +243,15 @@ export function OrderManagementTable({
           <span className="text-sm font-medium">
             არჩეულია {selectedOrders.length} შეკვეთა
           </span>
-          <Select onValueChange={(value) => handleBulkStatusUpdate(value as Order['status'])}>
+          <Select onValueChange={(value) => handleBulkStatusUpdate(value as OrderStatus)}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="სტატუსის შეცვლა" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="confirmed">დადასტურება</SelectItem>
-              <SelectItem value="preparing">მზადება</SelectItem>
-              <SelectItem value="ready">მზადაა</SelectItem>
-              <SelectItem value="picked_up">გატანილია</SelectItem>
+              <SelectItem value="priced">ფასდადება</SelectItem>
+              <SelectItem value="assigned">მინიჭება</SelectItem>
+              <SelectItem value="out_for_delivery">გატანილია</SelectItem>
               <SelectItem value="delivered">მიტანილია</SelectItem>
               <SelectItem value="cancelled">გაუქმება</SelectItem>
             </SelectContent>
@@ -316,8 +304,6 @@ export function OrderManagementTable({
           </TableHeader>
           <TableBody>
             {orders.map((order) => {
-              const statusInfo = statusConfig[order.status]
-              const StatusIcon = statusInfo.icon
               const priorityColor = getPriorityColor(order)
 
               return (
@@ -338,8 +324,8 @@ export function OrderManagementTable({
                   </TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{order.customer_name}</div>
-                      <div className="text-sm text-muted-foreground">{order.customer_phone}</div>
+                      <div className="font-medium">{order.delivery_address || 'N/A'}</div>
+                      <div className="text-sm text-muted-foreground">{order.delivery_time || 'N/A'}</div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -349,13 +335,13 @@ export function OrderManagementTable({
                     <div className="text-sm">{order.driver_name || 'არ არის მინიჭებული'}</div>
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">{order.total_amount}₾</div>
+                    <div className="font-medium">{order.total_amount ? `${order.total_amount}₾` : 'ფასი არ არის დადასტურებული'}</div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Select
                         value={order.status}
-                        onValueChange={(value) => handleStatusChange(order.id, value as Order['status'])}
+                        onValueChange={(value) => handleStatusChange(order.id, value as OrderStatus)}
                       >
                         <SelectTrigger className="w-32">
                           <SelectValue />
@@ -363,14 +349,21 @@ export function OrderManagementTable({
                         <SelectContent>
                           <SelectItem value="pending">მოლოდინში</SelectItem>
                           <SelectItem value="confirmed">დადასტურებული</SelectItem>
-                          <SelectItem value="preparing">მზადება</SelectItem>
-                          <SelectItem value="ready">მზადაა</SelectItem>
-                          <SelectItem value="picked_up">გატანილია</SelectItem>
+                          <SelectItem value="priced">ფასდადებული</SelectItem>
+                          <SelectItem value="assigned">მინიჭებული</SelectItem>
+                          <SelectItem value="out_for_delivery">გატანილია</SelectItem>
                           <SelectItem value="delivered">მიტანილია</SelectItem>
+                          <SelectItem value="completed">დასრულებული</SelectItem>
                           <SelectItem value="cancelled">გაუქმებული</SelectItem>
                         </SelectContent>
                       </Select>
-                      <Badge variant={priorityColor as any} className="ml-2">
+                      <Badge 
+                        variant={
+                          priorityColor === 'destructive' ? 'destructive' : 
+                          priorityColor === 'warning' ? 'secondary' : 'default'
+                        } 
+                        className="ml-2"
+                      >
                         {priorityColor === 'destructive' && 'სასწრაფო'}
                         {priorityColor === 'warning' && 'საშუალო'}
                       </Badge>

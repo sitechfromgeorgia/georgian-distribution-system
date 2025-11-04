@@ -1,54 +1,98 @@
 'use client'
 
-import { createContext, useContext, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
-import { useCSRF } from '@/hooks/useCSRF'
-import { SessionTimeoutModal, useSessionTimeout } from './SessionTimeoutModal'
-import { LoginForm } from './LoginForm'
+import { LoginForm } from '@/components/auth/LoginForm'
+import { Loader2 } from 'lucide-react'
+import { ensureAuthInitialized } from '@/lib/auth-init'
 
-const AuthContext = createContext<ReturnType<typeof useAuth> | null>(null)
-const CSRFContext = createContext<ReturnType<typeof useCSRF> | null>(null)
+interface AuthContextType {
+  user: any
+  profile: any
+  loading: boolean
+  signOut: () => Promise<void>
+  isAdmin: () => boolean
+  isRestaurant: () => boolean
+  isDriver: () => boolean
+  isAuthenticated: boolean
+}
+
+const AuthContext = createContext<AuthContextType | null>(null)
 
 interface AuthProviderProps {
-  children: React.ReactNode
+  children?: React.ReactNode
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const auth = useAuth()
-  const csrf = useCSRF()
-  const sessionTimeout = useSessionTimeout()
-  const { user, loading } = auth
+  const pathname = usePathname()
+  const [authReady, setAuthReady] = useState(false)
 
-  if (loading) {
+  const {
+    user,
+    profile,
+    loading,
+    signOut,
+    isAdmin,
+    isRestaurant,
+    isDriver,
+    isAuthenticated
+  } = useAuth()
+
+  // Initialize auth once on mount
+  useEffect(() => {
+    let mounted = true
+
+    ensureAuthInitialized().then(() => {
+      if (mounted) {
+        setAuthReady(true)
+      }
+    })
+
+    return () => {
+      mounted = false
+    }
+  }, []) // Intentionally empty - runs once per AuthProvider instance
+
+  // Allow public access to certain routes
+  const publicRoutes = ['/', '/welcome', '/demo', '/landing', '/login']
+  const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/api')
+
+  // Show loading spinner during auth initialization
+  if (!authReady || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p>იტვირთება...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">მიმდინარეობს ავტორიზაცია...</p>
         </div>
       </div>
     )
   }
 
-  if (!user) {
+  // For non-public routes, require authentication
+  if (!isPublicRoute && !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <LoginForm />
+        <div className="max-w-md w-full">
+          <LoginForm />
+        </div>
       </div>
     )
   }
 
   return (
-    <AuthContext.Provider value={auth}>
-      <CSRFContext.Provider value={csrf}>
-        {children}
-        <SessionTimeoutModal
-          isOpen={sessionTimeout.showModal}
-          onExtend={sessionTimeout.extendSession}
-          onSignOut={sessionTimeout.handleSignOut}
-          timeRemaining={sessionTimeout.timeRemaining}
-        />
-      </CSRFContext.Provider>
+    <AuthContext.Provider value={{
+      user,
+      profile,
+      loading,
+      signOut,
+      isAdmin,
+      isRestaurant,
+      isDriver,
+      isAuthenticated
+    }}>
+      {children}
     </AuthContext.Provider>
   )
 }
@@ -57,14 +101,6 @@ export function useAuthContext() {
   const context = useContext(AuthContext)
   if (!context) {
     throw new Error('useAuthContext must be used within AuthProvider')
-  }
-  return context
-}
-
-export function useCSRFContext() {
-  const context = useContext(CSRFContext)
-  if (!context) {
-    throw new Error('useCSRFContext must be used within AuthProvider')
   }
   return context
 }

@@ -1,0 +1,61 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(test:*)",
+      "Bash(npm:*)",
+      "Bash(git:*)",
+      "Bash(cd:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(echo:*)",
+      "Bash(node scripts/fix-supabase-imports.js:*)",
+      "Bash(node scripts/fix-supabase-imports.mjs:*)",
+      "Bash(move:*)",
+      "Bash(node scripts/replace-console-logs.mjs:*)",
+      "Bash(node scripts/fix-all-supabase-imports.mjs:*)",
+      "Bash(node scripts/fix-server-imports.mjs:*)",
+      "Bash(if exist .next rmdir /s /q .next)",
+      "Bash(node:*)",
+      "Bash(timeout 90 npm run build:*)",
+      "Bash(tee:*)",
+      "Bash(timeout 120 npm run build:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(nul)",
+      "Bash(code --list-extensions:*)",
+      "Bash(findstr:*)",
+      "Bash(npx -y @perplexity-ai/mcp-server --help)",
+      "Bash(npx:*)",
+      "Bash(claude mcp:*)",
+      "Bash(dir /b \"C:\\Users\\SITECH\\Desktop\\DEV\\Distribution-Managment\\.claude\" 2)",
+      "Bash(dir \"C:\\Users\\SITECH\\Desktop\\DEV\\Distribution-Managment\\.claude\")",
+      "Bash(dir:*)",
+      "Bash(set:*)",
+      "Bash(powershell -Command \"$env:SUPABASE_URL=''https://akxmacfsltzhbnunoepb.supabase.co''; $env:SUPABASE_ANON_KEY=''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFreG1hY2ZzbHR6aGJudW5vZXBiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTUzNjM2MTMsImV4cCI6MjAzMDkzOTYxM30.JjABqZY7A-0wOuTWkFhAzbFJQF8dJ9oSWzjCzR5nQXA''; node .claude/knowledge/answers/quick-test.js\")",
+      "Bash(supabase --version:*)",
+      "Bash(if not exist \"supabase\\migrations\" mkdir supabasemigrations)",
+      "Bash(powershell -Command:*)",
+      "Bash(copy APPLY_ALL_MIGRATIONS.sql supabasemigrations20251103000000_complete_setup.sql)",
+      "Bash(taskkill:*)",
+      "Bash(cmd //c taskkill //F //PID 24632)"
+    ],
+    "deny": [
+      "Bash(rm:*)",
+      "Bash(rmdir:*)",
+      "Bash(del:*)"
+    ],
+    "ask": []
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "perplexity",
+    "filesystem",
+    "github",
+    "sentry",
+    "supabase",
+    "context7",
+    "sequentialthinking",
+    "chrome-devtools",
+    "shadcn"
+  ]
+}

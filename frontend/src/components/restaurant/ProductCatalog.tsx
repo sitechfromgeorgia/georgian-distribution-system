@@ -1,10 +1,12 @@
 'use client'
+import { logger } from '@/lib/logger'
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import Image from 'next/image'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -15,17 +17,17 @@ import {
   ShoppingCart,
   Package
 } from 'lucide-react'
-import { Product, ProductFilters, PRODUCT_CATEGORIES } from '@/types/restaurant'
+import { Product, RestaurantProduct, ProductFilters, PRODUCT_CATEGORIES } from '@/types/restaurant'
 import { RestaurantUtils } from '@/lib/restaurant-utils'
 import { useToast } from '@/hooks/use-toast'
 
 interface ProductCatalogProps {
-  onAddToCart: (product: Product, quantity: number, notes?: string) => void
-  cartItems: Array<{ product: Product; quantity: number; notes?: string }>
+  onAddToCart: (product: RestaurantProduct, quantity: number, notes?: string) => void
+  cartItems: Array<{ product: RestaurantProduct; quantity: number; notes?: string }>
 }
 
 export function ProductCatalog({ onAddToCart, cartItems }: ProductCatalogProps) {
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<RestaurantProduct[]>([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<ProductFilters>({
     available_only: true
@@ -47,7 +49,7 @@ export function ProductCatalog({ onAddToCart, cartItems }: ProductCatalogProps) 
       })
       setProducts(data)
     } catch (error) {
-      console.error('Failed to load products:', error)
+      logger.error('Failed to load products:', error)
       toast({
         title: 'შეცდომა',
         description: 'პროდუქტების ჩატვირთვა ვერ მოხერხდა',
@@ -62,7 +64,7 @@ export function ProductCatalog({ onAddToCart, cartItems }: ProductCatalogProps) 
     loadProducts()
   }
 
-  const handleAddToCart = (product: Product) => {
+  const handleAddToCart = (product: RestaurantProduct) => {
     const existingItem = cartItems.find(item => item.product.id === product.id)
     const currentQuantity = existingItem?.quantity || 0
 
@@ -197,11 +199,13 @@ export function ProductCatalog({ onAddToCart, cartItems }: ProductCatalogProps) 
               <Card key={product.id} className="relative">
                 <CardContent className="p-4">
                   {product.image_url && (
-                    <div className="h-32 bg-muted rounded mb-4 flex items-center justify-center">
-                      <img
+                    <div className="h-32 bg-muted rounded mb-4 overflow-hidden">
+                      <Image
                         src={product.image_url}
                         alt={product.name}
-                        className="h-full w-full object-cover rounded"
+                        width={600}
+                        height={400}
+                        className="h-full w-full object-cover"
                       />
                     </div>
                   )}

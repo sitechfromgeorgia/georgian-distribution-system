@@ -1,4 +1,5 @@
 'use client'
+import { logger } from '@/lib/logger'
 
 import { useState, useEffect } from 'react'
 import { quickConnectivityTest } from '@/lib/service-health'
@@ -15,7 +16,7 @@ export function ServiceStatusBanner() {
       setStatus(result.success ? 'healthy' : 'down')
       setLastCheck(new Date())
     } catch (error) {
-      console.error('Service check failed:', error)
+      logger.error('Service check failed:', error)
       setStatus('down')
     } finally {
       setLoading(false)

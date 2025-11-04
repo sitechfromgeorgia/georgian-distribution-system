@@ -1,6 +1,7 @@
 'use client'
+import { logger } from '@/lib/logger'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,16 +10,13 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   Search,
-  Filter,
   Download,
   Calendar,
   DollarSign,
   Clock,
   Star,
-  TrendingUp,
   MapPin,
-  CheckCircle,
-  XCircle
+  CheckCircle
 } from 'lucide-react'
 import { DELIVERY_STATUSES, DriverDelivery } from '@/types/driver'
 import { format } from 'date-fns'
@@ -56,7 +54,7 @@ export default function DriverHistoryPage() {
   const [ratingFilter, setRatingFilter] = useState<string>('all')
 
   // Mock data - replace with actual API calls
-  const loadHistoryData = async () => {
+  const loadHistoryData = useCallback(async () => {
     const mockDeliveries: DeliveryHistoryItem[] = [
       {
         id: '1',
@@ -169,10 +167,10 @@ export default function DriverHistoryPage() {
       totalTips,
       averageDeliveryTime: isNaN(averageDeliveryTime) ? 0 : averageDeliveryTime
     })
-  }
+  }, [])
 
   // Filter deliveries
-  const updateFilteredDeliveries = () => {
+  const updateFilteredDeliveries = useCallback(() => {
     let filtered = deliveries
 
     if (searchTerm) {
@@ -214,19 +212,25 @@ export default function DriverHistoryPage() {
     }
 
     setFilteredDeliveries(filtered)
-  }
-
-  useEffect(() => {
-    loadHistoryData()
-  }, [])
-
-  useEffect(() => {
-    updateFilteredDeliveries()
   }, [deliveries, searchTerm, statusFilter, ratingFilter, dateFilter])
+
+  useEffect(() => {
+    const initializeData = async () => {
+      await loadHistoryData()
+    }
+    initializeData()
+  }, [loadHistoryData])
+
+  useEffect(() => {
+    const updateFilters = async () => {
+      await updateFilteredDeliveries()
+    }
+    updateFilters()
+  }, [updateFilteredDeliveries])
 
   const exportHistory = () => {
     // Implement CSV export
-    console.log('Exporting delivery history...')
+    logger.info('Exporting delivery history...')
   }
 
   const formatDuration = (minutes: number) => {

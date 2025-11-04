@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger'
 import { DEMO_SAMPLE_DATA } from './demo-data';
 import type { DemoSession, DemoRole } from '@/types/demo';
 
@@ -29,13 +30,13 @@ export class DemoUtils {
   }
 
   static async attemptConversion(sessionId: string, userId: string, conversionType: string) {
-    console.log('Demo conversion attempt:', { sessionId, userId, conversionType });
+    logger.info('Demo conversion attempt:', { sessionId, userId, conversionType });
     // Mock conversion tracking
     return { success: true, conversionType };
   }
 
   static async trackDemoAction(sessionId: string, userId: string, action: string, metadata?: any) {
-    console.log('Demo action tracked:', { sessionId, userId, action, metadata });
+    logger.info('Demo action tracked:', { sessionId, userId, action, metadata });
     // Mock action tracking
     return { success: true };
   }

@@ -1,6 +1,7 @@
 'use client'
+import { logger } from '@/lib/logger'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ProductCatalog } from '@/components/restaurant/ProductCatalog'
 import { Cart } from '@/components/restaurant/Cart'
@@ -13,30 +14,36 @@ export default function OrderPage() {
   const [activeTab, setActiveTab] = useState('catalog')
   const { toast } = useToast()
 
-  const loadCartFromStorage = async () => {
+  const loadCartFromStorage = useCallback(async () => {
     try {
       const savedCart = await RestaurantUtils.getCartFromStorage()
       setCartItems(savedCart)
     } catch (error) {
-      console.error('Failed to load cart from storage:', error)
+      logger.error('Failed to load cart from storage:', error)
     }
-  }
+  }, [])
 
-  const saveCartToStorage = async () => {
+  const saveCartToStorage = useCallback(async () => {
     try {
       await RestaurantUtils.saveCartToStorage(cartItems)
     } catch (error) {
-      console.error('Failed to save cart to storage:', error)
+      logger.error('Failed to save cart to storage:', error)
     }
-  }
-
-  useEffect(() => {
-    loadCartFromStorage()
-  }, [])
-
-  useEffect(() => {
-    saveCartToStorage()
   }, [cartItems])
+
+  useEffect(() => {
+    const initializeCart = async () => {
+      await loadCartFromStorage()
+    }
+    initializeCart()
+  }, [loadCartFromStorage])
+
+  useEffect(() => {
+    const saveCart = async () => {
+      await saveCartToStorage()
+    }
+    saveCart()
+  }, [saveCartToStorage])
 
   const handleAddToCart = (product: Product, quantity: number, notes?: string) => {
     setCartItems(prevItems => {
@@ -144,7 +151,7 @@ export default function OrderPage() {
       // Redirect to tracking page or show success message
       setActiveTab('catalog')
     } catch (error) {
-      console.error('Failed to submit order:', error)
+      logger.error('Failed to submit order:', error)
       toast({
         title: 'შეცდომა',
         description: 'შეკვეთის გაგზავნა ვერ მოხერხდა',

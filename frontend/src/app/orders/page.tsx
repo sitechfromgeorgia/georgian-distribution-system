@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { OrderManagementClient } from '@/components/orders/OrderManagementClient'
 
 export default async function OrdersPage() {
-  const supabase = createServerClient()
+  const supabase = await createServerClient()
 
   // Verify authentication
   const { data: { user }, error } = await supabase.auth.getUser()
@@ -19,6 +19,17 @@ export default async function OrdersPage() {
     redirect('/unauthorized')
   }
 
+  // Fetch profile data
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError || !profile) {
+    redirect('/profile-not-found')
+  }
+
   return (
     <div className="container mx-auto py-6">
       <div className="mb-6">
@@ -28,8 +39,8 @@ export default async function OrdersPage() {
         </p>
       </div>
 
-      <OrderManagementClient 
-        user={user}
+      <OrderManagementClient
+        user={profile}
         role={role}
       />
     </div>

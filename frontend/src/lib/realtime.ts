@@ -1,4 +1,7 @@
-import { supabase } from './supabase'
+import { logger } from '@/lib/logger'
+import { createBrowserClient } from '@/lib/supabase'
+
+const supabase = createBrowserClient()
 import { Database } from '@/types/database'
 import type { RealtimeChannel, RealtimePostgresChangesPayload, RealtimePresenceState } from '@supabase/supabase-js'
 
@@ -303,36 +306,47 @@ export class OrderRealtimeManager {
         const state = channel.presenceState()
         const transformedState: PresenceState = {}
         Object.keys(state).forEach(key => {
-          transformedState[key] = state[key].map(p => ({
-            id: (p as any).id || key,
-            status: (p as any).status || 'available',
-            timestamp: (p as any).timestamp || new Date().toISOString(),
-            full_name: (p as any).full_name
-          }))
+          const presences = state[key]
+          if (presences) {
+            transformedState[key] = presences.map(p => ({
+              id: (p as any).id || key,
+              status: (p as any).status || 'available',
+              timestamp: (p as any).timestamp || new Date().toISOString(),
+              full_name: (p as any).full_name
+            }))
+          }
         })
         callback(transformedState)
       })
       .on('presence', { event: 'join' }, (payload) => {
         const transformedState: PresenceState = {}
-        Object.keys(payload.newPresences).forEach(key => {
-          transformedState[key] = payload.newPresences[key].map(p => ({
-            id: (p as any).id || key,
-            status: (p as any).status || 'available',
-            timestamp: (p as any).timestamp || new Date().toISOString(),
-            full_name: (p as any).full_name
-          }))
+        const newPresences = payload.newPresences as unknown as Record<string, any[]>
+        Object.keys(newPresences).forEach(key => {
+          const presences = newPresences[key]
+          if (presences) {
+            transformedState[key] = presences.map(p => ({
+              id: (p as any).id || key,
+              status: (p as any).status || 'available',
+              timestamp: (p as any).timestamp || new Date().toISOString(),
+              full_name: (p as any).full_name
+            }))
+          }
         })
         callback(transformedState)
       })
       .on('presence', { event: 'leave' }, (payload) => {
         const transformedState: PresenceState = {}
-        Object.keys(payload.leftPresences).forEach(key => {
-          transformedState[key] = payload.leftPresences[key].map(p => ({
-            id: (p as any).id || key,
-            status: (p as any).status || 'offline',
-            timestamp: (p as any).timestamp || new Date().toISOString(),
-            full_name: (p as any).full_name
-          }))
+        const leftPresences = payload.leftPresences as unknown as Record<string, any[]>
+        Object.keys(leftPresences).forEach(key => {
+          const presences = leftPresences[key]
+          if (presences) {
+            transformedState[key] = presences.map(p => ({
+              id: (p as any).id || key,
+              status: (p as any).status || 'offline',
+              timestamp: (p as any).timestamp || new Date().toISOString(),
+              full_name: (p as any).full_name
+            }))
+          }
         })
         callback(transformedState)
       })
@@ -384,7 +398,7 @@ export class OrderRealtimeManager {
       supabase.removeChannel(channel)
 
     } catch (error) {
-      console.error('Failed to send notification:', error)
+      logger.error('Failed to send notification:', error)
     }
   }
 
@@ -411,7 +425,7 @@ export class OrderRealtimeManager {
       supabase.removeChannel(channel)
 
     } catch (error) {
-      console.error('Failed to send driver location update:', error)
+      logger.error('Failed to send driver location update:', error)
     }
  }
 
@@ -437,42 +451,42 @@ export class OrderRealtimeManager {
           )
         `)
         .eq('id', orderId)
-        .single()
+        .single() as { data: any; error: any }
 
       if (!order) return
 
       const notifications: OrderNotification[] = []
 
       // Notify restaurant
-      if (order.restaurant_id) {
+      if ((order as any).restaurant_id) {
         notifications.push({
           order_id: orderId,
           type: 'status_change',
           message: `Order #${orderId.slice(-8)} status changed from ${oldStatus} to ${newStatus}`,
-          recipient_id: order.restaurant_id,
+          recipient_id: (order as any).restaurant_id,
           recipient_role: 'restaurant',
           data: {
             order_id: orderId,
             old_status: oldStatus,
             new_status: newStatus,
-            restaurant_name: order.profiles?.restaurant_name || order.profiles?.full_name
+            restaurant_name: (order as any).profiles?.restaurant_name || (order as any).profiles?.full_name
           }
         })
       }
 
       // Notify assigned driver
-      if (order.driver_id) {
+      if ((order as any).driver_id) {
         notifications.push({
           order_id: orderId,
           type: 'status_change',
           message: `Order #${orderId.slice(-8)} status changed to ${newStatus}`,
-          recipient_id: order.driver_id,
+          recipient_id: (order as any).driver_id,
           recipient_role: 'driver',
           data: {
             order_id: orderId,
             old_status: oldStatus,
             new_status: newStatus,
-            restaurant_name: order.profiles?.restaurant_name || order.profiles?.full_name
+            restaurant_name: (order as any).profiles?.restaurant_name || (order as any).profiles?.full_name
           }
         })
       }
@@ -491,8 +505,8 @@ export class OrderRealtimeManager {
             order_id: orderId,
             old_status: oldStatus,
             new_status: newStatus,
-            restaurant_name: order.profiles?.restaurant_name || order.profiles?.full_name,
-            driver_name: order.profiles ? order.profiles.full_name : null
+            restaurant_name: (order as any).profiles?.restaurant_name || (order as any).profiles?.full_name,
+            driver_name: (order as any).profiles ? (order as any).profiles.full_name : null
           }
         })
       }
@@ -503,7 +517,7 @@ export class OrderRealtimeManager {
       )
 
     } catch (error) {
-      console.error('Failed to send order status notifications:', error)
+      logger.error('Failed to send order status notifications:', error)
     }
  }
 
@@ -526,7 +540,7 @@ export class OrderRealtimeManager {
           )
         `)
         .eq('id', orderId)
-        .single()
+        .single() as { data: any; error: any }
 
       if (!order) return
 
@@ -546,12 +560,12 @@ export class OrderRealtimeManager {
       })
 
       // Notify restaurant
-      if (order.restaurant_id) {
+      if ((order as any).restaurant_id) {
         notifications.push({
           order_id: orderId,
           type: 'assigned',
           message: `Order #${orderId.slice(-8)} has been assigned to ${order.profiles ? order.profiles.full_name : 'a driver'}`,
-          recipient_id: order.restaurant_id,
+          recipient_id: (order as any).restaurant_id,
           recipient_role: 'restaurant',
           data: {
             order_id: orderId,
@@ -579,7 +593,7 @@ export class OrderRealtimeManager {
       )
 
     } catch (error) {
-      console.error('Failed to send order assignment notifications:', error)
+      logger.error('Failed to send order assignment notifications:', error)
     }
   }
 
@@ -598,7 +612,7 @@ export class OrderRealtimeManager {
           )
         `)
         .eq('id', orderId)
-        .single()
+        .single() as { data: any; error: any }
 
       if (!order) return
 
@@ -616,7 +630,7 @@ export class OrderRealtimeManager {
       })
 
     } catch (error) {
-      console.error('Failed to send order creation notification:', error)
+      logger.error('Failed to send order creation notification:', error)
     }
   }
 
@@ -646,17 +660,17 @@ export class OrderRealtimeManager {
       const notifications: OrderNotification[] = []
 
       // Notify restaurant
-      if (order.restaurant_id) {
+      if ((order as any).restaurant_id) {
         notifications.push({
           order_id: orderId,
           type: 'delivery_update',
           message: `Order #${orderId.slice(-8)} delivery status: ${status}`,
-          recipient_id: order.restaurant_id,
+          recipient_id: (order as any).restaurant_id,
           recipient_role: 'restaurant',
           data: {
             order_id: orderId,
             status,
-            driver_name: order.profiles ? order.profiles.full_name : null
+            driver_name: (order as any).profiles ? (order as any).profiles.full_name : null
           }
         })
       }
@@ -671,8 +685,8 @@ export class OrderRealtimeManager {
         data: {
           order_id: orderId,
           status,
-          driver_name: order.profiles ? order.profiles.full_name : null,
-          restaurant_name: order.profiles?.restaurant_name || order.profiles?.full_name
+          driver_name: (order as any).profiles ? (order as any).profiles.full_name : null,
+          restaurant_name: (order as any).profiles?.restaurant_name || (order as any).profiles?.full_name
         }
       })
 
@@ -681,7 +695,7 @@ export class OrderRealtimeManager {
       )
 
     } catch (error) {
-      console.error('Failed to send delivery status update notification:', error)
+      logger.error('Failed to send delivery status update notification:', error)
     }
   }
 
@@ -707,7 +721,7 @@ export class OrderRealtimeManager {
       try {
         callback(payload)
       } catch (error) {
-        console.error(`Error in throttled callback for ${key}:`, error)
+        logger.error(`Error in throttled callback for ${key}:`, error)
       }
     }
   }
@@ -723,7 +737,7 @@ export class OrderRealtimeManager {
 
     const delay = Math.min(1000 * Math.pow(2, this.connectionStates.get(key) === 'error' ? 1 : 0), 30000)
     const timeout = setTimeout(() => {
-      console.log(`Reconnecting ${key}...`)
+      logger.info(`Reconnecting ${key}...`)
       reconnectFn()
     }, delay)
 
@@ -760,7 +774,7 @@ export class OrderRealtimeManager {
   /**
    * Show browser notification
    */
-  showBrowserNotification(title: string, options?: NotificationOptions) {
+  showBrowserNotification(title: string, options?: NotificationOptions): Notification | undefined {
     if (Notification.permission === 'granted') {
       return new Notification(title, {
         icon: '/favicon.ico',
@@ -768,6 +782,7 @@ export class OrderRealtimeManager {
         ...options
       })
     }
+    return undefined
   }
 
   /**

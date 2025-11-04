@@ -23,25 +23,25 @@ export function DemoOnboarding({ onComplete }: DemoOnboardingProps) {
       icon: CheckCircle,
       content: (
         <div className="space-y-4">
-          <p className="text-gray-700">
+          <p className="text-muted-foreground">
             Our platform connects restaurants, drivers, and customers in a seamless delivery ecosystem.
             This demo will show you how each role interacts with the system.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <Users className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+            <div className="text-center p-4 bg-primary/10 rounded-lg border">
+              <Users className="h-8 w-8 text-primary mx-auto mb-2" />
               <h3 className="font-semibold">Admin</h3>
-              <p className="text-sm text-gray-600">System oversight</p>
+              <p className="text-sm text-muted-foreground">System oversight</p>
             </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <Package className="h-8 w-8 text-green-600 mx-auto mb-2" />
+            <div className="text-center p-4 bg-primary/10 rounded-lg border">
+              <Package className="h-8 w-8 text-primary mx-auto mb-2" />
               <h3 className="font-semibold">Restaurant</h3>
-              <p className="text-sm text-gray-600">Menu & orders</p>
+              <p className="text-sm text-muted-foreground">Menu & orders</p>
             </div>
-            <div className="text-center p-4 bg-orange-50 rounded-lg">
-              <Truck className="h-8 w-8 text-orange-600 mx-auto mb-2" />
+            <div className="text-center p-4 bg-primary/10 rounded-lg border">
+              <Truck className="h-8 w-8 text-primary mx-auto mb-2" />
               <h3 className="font-semibold">Driver</h3>
-              <p className="text-sm text-gray-600">Deliveries</p>
+              <p className="text-sm text-muted-foreground">Deliveries</p>
             </div>
           </div>
         </div>
@@ -53,21 +53,21 @@ export function DemoOnboarding({ onComplete }: DemoOnboardingProps) {
       icon: Play,
       content: (
         <div className="space-y-4">
-          <p className="text-gray-700">
+          <p className="text-muted-foreground">
             Use the role switcher at the top to experience the system from different perspectives.
             Each role has unique dashboards and capabilities.
           </p>
           <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Badge className="bg-blue-100 text-blue-800">Admin</Badge>
+            <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+              <Badge variant="secondary">Admin</Badge>
               <span className="text-sm">Manage users, monitor analytics, oversee operations</span>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Badge className="bg-green-100 text-green-800">Restaurant</Badge>
+            <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+              <Badge variant="secondary">Restaurant</Badge>
               <span className="text-sm">Update menus, process orders, track deliveries</span>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Badge className="bg-orange-100 text-orange-800">Driver</Badge>
+            <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+              <Badge variant="secondary">Driver</Badge>
               <span className="text-sm">Accept deliveries, optimize routes, track earnings</span>
             </div>
           </div>
@@ -80,25 +80,25 @@ export function DemoOnboarding({ onComplete }: DemoOnboardingProps) {
       icon: BarChart3,
       content: (
         <div className="space-y-4">
-          <p className="text-gray-700">
+          <p className="text-muted-foreground">
             Our system includes comprehensive features for efficient food delivery management.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <h4 className="font-semibold text-sm">Real-time Updates</h4>
-              <p className="text-sm text-gray-600">Live order tracking and status updates</p>
+              <p className="text-sm text-muted-foreground">Live order tracking and status updates</p>
             </div>
             <div className="space-y-2">
               <h4 className="font-semibold text-sm">Analytics Dashboard</h4>
-              <p className="text-sm text-gray-600">Comprehensive reporting and insights</p>
+              <p className="text-sm text-muted-foreground">Comprehensive reporting and insights</p>
             </div>
             <div className="space-y-2">
               <h4 className="font-semibold text-sm">Mobile Optimized</h4>
-              <p className="text-sm text-gray-600">Works perfectly on all devices</p>
+              <p className="text-sm text-muted-foreground">Works perfectly on all devices</p>
             </div>
             <div className="space-y-2">
               <h4 className="font-semibold text-sm">Secure & Reliable</h4>
-              <p className="text-sm text-gray-600">Enterprise-grade security</p>
+              <p className="text-sm text-muted-foreground">Enterprise-grade security</p>
             </div>
           </div>
         </div>
@@ -123,6 +123,11 @@ export function DemoOnboarding({ onComplete }: DemoOnboardingProps) {
 
   const progress = ((currentStep + 1) / steps.length) * 100;
   const currentStepData = steps[currentStep];
+
+  if (!currentStepData) {
+    return null;
+  }
+
   const Icon = currentStepData.icon;
 
   return (
@@ -134,7 +139,7 @@ export function DemoOnboarding({ onComplete }: DemoOnboardingProps) {
               <Icon className="h-6 w-6 text-blue-600" />
               <div>
                 <CardTitle className="text-xl">{currentStepData.title}</CardTitle>
-                <p className="text-sm text-gray-600 mt-1">{currentStepData.description}</p>
+                <p className="text-sm text-muted-foreground mt-1">{currentStepData.description}</p>
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={handleSkip}>
@@ -148,7 +153,7 @@ export function DemoOnboarding({ onComplete }: DemoOnboardingProps) {
           {currentStepData.content}
 
           <div className="flex items-center justify-between pt-4 border-t">
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-muted-foreground">
               Step {currentStep + 1} of {steps.length}
             </div>
 

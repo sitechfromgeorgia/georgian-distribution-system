@@ -6,269 +6,598 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "13.0.5"
+  }
   public: {
     Tables: {
-      profiles: {
+      deliveries: {
         Row: {
-          id: string
-          role: 'admin' | 'restaurant' | 'driver' | 'demo'
-          full_name: string | null
-          restaurant_name: string | null
-          phone: string | null
-          address: string | null
-          is_active: boolean
           created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id: string
-          role: 'admin' | 'restaurant' | 'driver' | 'demo'
-          full_name?: string | null
-          restaurant_name?: string | null
-          phone?: string | null
-          address?: string | null
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          role?: 'admin' | 'restaurant' | 'driver' | 'demo'
-          full_name?: string | null
-          restaurant_name?: string | null
-          phone?: string | null
-          address?: string | null
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      products: {
-        Row: {
-          id: string
-          name: string
-          description: string | null
-          price: number
-          cost_price: number
-          category: string
-          unit: string
-          stock_quantity: number
-          min_stock_level: number
-          image_url: string | null
-          tags: string[] | null
-          is_active: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          description?: string | null
-          price: number
-          cost_price: number
-          category: string
-          unit: string
-          stock_quantity: number
-          min_stock_level: number
-          image_url?: string | null
-          tags?: string[] | null
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          description?: string | null
-          price?: number
-          cost_price?: number
-          category?: string
-          unit?: string
-          stock_quantity?: number
-          min_stock_level?: number
-          image_url?: string | null
-          tags?: string[] | null
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-      }
-      orders: {
-        Row: {
-          id: string
-          restaurant_id: string
-          driver_id: string | null
-          status: 'pending' | 'confirmed' | 'priced' | 'assigned' | 'out_for_delivery' | 'delivered' | 'completed' | 'cancelled'
-          total_amount: number | null
-          delivery_fee: number
-          tax_amount: number
-          discount_amount: number
-          notes: string | null
-          delivery_address: string | null
           delivery_time: string | null
-          created_at: string
+          driver_id: string
+          id: string
+          notes: string | null
+          order_id: string
+          pickup_time: string | null
+          status: string
           updated_at: string
         }
         Insert: {
-          id?: string
-          restaurant_id: string
-          driver_id?: string | null
-          status?: 'pending' | 'confirmed' | 'priced' | 'assigned' | 'out_for_delivery' | 'delivered' | 'completed'
-          total_amount?: number | null
-          delivery_fee?: number
-          tax_amount?: number
-          discount_amount?: number
-          notes?: string | null
-          delivery_address?: string | null
-          delivery_time?: string | null
           created_at?: string
+          delivery_time?: string | null
+          driver_id: string
+          id?: string
+          notes?: string | null
+          order_id: string
+          pickup_time?: string | null
+          status?: string
           updated_at?: string
         }
         Update: {
-          id?: string
-          restaurant_id?: string
-          driver_id?: string | null
-          status?: 'pending' | 'confirmed' | 'priced' | 'assigned' | 'out_for_delivery' | 'delivered' | 'completed' | 'cancelled'
-          total_amount?: number | null
-          delivery_fee?: number
-          tax_amount?: number
-          discount_amount?: number
-          notes?: string | null
-          delivery_address?: string | null
-          delivery_time?: string | null
           created_at?: string
+          delivery_time?: string | null
+          driver_id?: string
+          id?: string
+          notes?: string | null
+          order_id?: string
+          pickup_time?: string | null
+          status?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "deliveries_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliveries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demo_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          session_token: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          session_token: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          session_token?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          message_ka: string | null
+          title: string
+          title_ka: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          message_ka?: string | null
+          title: string
+          title_ka?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          message_ka?: string | null
+          title?: string
+          title_ka?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          order_id: string
+          performed_by: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          order_id: string
+          performed_by?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          order_id?: string
+          performed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_audit_logs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_audit_logs_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       order_items: {
         Row: {
+          created_at: string
           id: string
           order_id: string
           product_id: string
           quantity: number
+          subtotal: number
           unit_price: number
-          cost_price: number | null
-          selling_price: number | null
-          total_price: number
-          notes: string | null
-          created_at: string
         }
         Insert: {
+          created_at?: string
           id?: string
           order_id: string
           product_id: string
           quantity: number
+          subtotal: number
           unit_price: number
-          cost_price?: number | null
-          selling_price?: number | null
-          total_price: number
-          notes?: string | null
-          created_at?: string
         }
         Update: {
+          created_at?: string
           id?: string
           order_id?: string
           product_id?: string
           quantity?: number
+          subtotal?: number
           unit_price?: number
-          cost_price?: number | null
-          selling_price?: number | null
-          total_price?: number
-          notes?: string | null
-          created_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      // Additional tables for real-time functionality
-      notifications: {
+      order_status_history: {
         Row: {
-          id: string
-          user_id: string
-          title: string
-          message: string
-          type: 'info' | 'success' | 'warning' | 'error'
-          is_read: boolean
+          changed_by: string | null
           created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          title: string
-          message: string
-          type?: 'info' | 'success' | 'warning' | 'error'
-          is_read?: boolean
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          title?: string
-          message?: string
-          type?: 'info' | 'success' | 'warning' | 'error'
-          is_read?: boolean
-          created_at?: string
-        }
-      }
-      // Demo data tables
-      demo_sessions: {
-        Row: {
           id: string
-          session_id: string
-          role: 'admin' | 'restaurant' | 'driver'
-          started_at: string
-          ended_at: string | null
+          new_status: string
+          notes: string | null
+          old_status: string | null
+          order_id: string
         }
         Insert: {
+          changed_by?: string | null
+          created_at?: string
           id?: string
-          session_id: string
-          role: 'admin' | 'restaurant' | 'driver'
-          started_at?: string
-          ended_at?: string | null
+          new_status: string
+          notes?: string | null
+          old_status?: string | null
+          order_id: string
         }
         Update: {
+          changed_by?: string | null
+          created_at?: string
           id?: string
-          session_id?: string
-          role?: 'admin' | 'restaurant' | 'driver'
-          started_at?: string
-          ended_at?: string | null
+          new_status?: string
+          notes?: string | null
+          old_status?: string | null
+          order_id?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "order_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_status_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          delivery_address: string
+          delivery_notes: string | null
+          driver_id: string | null
+          id: string
+          restaurant_id: string
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_address: string
+          delivery_notes?: string | null
+          driver_id?: string | null
+          id?: string
+          restaurant_id: string
+          status?: string
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delivery_address?: string
+          delivery_notes?: string | null
+          driver_id?: string | null
+          id?: string
+          restaurant_id?: string
+          status?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_audit_log: {
+        Row: {
+          created_at: string
+          id: string
+          operation: string
+          passed: boolean
+          reason: string | null
+          row_id: string | null
+          table_name: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          operation: string
+          passed: boolean
+          reason?: string | null
+          row_id?: string | null
+          table_name: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          operation?: string
+          passed?: boolean
+          reason?: string | null
+          row_id?: string | null
+          table_name?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_audit_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          description_ka: string | null
+          id: string
+          image_url: string | null
+          is_available: boolean
+          name: string
+          name_ka: string | null
+          price: number
+          stock_quantity: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          description_ka?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          name: string
+          name_ka?: string | null
+          price: number
+          stock_quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          description_ka?: string | null
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          name?: string
+          name_ka?: string | null
+          price?: number
+          stock_quantity?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: { Args: never; Returns: string }
+      is_admin: { Args: never; Returns: boolean }
+      is_driver: { Args: never; Returns: boolean }
+      is_restaurant: { Args: never; Returns: boolean }
     }
     Enums: {
-      user_role: 'admin' | 'restaurant' | 'driver' | 'demo'
-      order_status: 'pending' | 'confirmed' | 'priced' | 'assigned' | 'out_for_delivery' | 'delivered' | 'completed' | 'cancelled'
-      notification_type: 'info' | 'success' | 'warning' | 'error'
+      notification_type: "info" | "success" | "warning" | "error"
+      order_status:
+        | "pending"
+        | "confirmed"
+        | "priced"
+        | "assigned"
+        | "out_for_delivery"
+        | "delivered"
+        | "completed"
+        | "cancelled"
+      user_role: "admin" | "restaurant" | "driver" | "demo"
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }
 
-// Helper types for common operations
-export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
-export type Inserts<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert']
-export type Updates<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update']
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-// Specific table types
-export type Profile = Tables<'profiles'>
-export type Product = Tables<'products'>
-export type Order = Tables<'orders'>
-export type OrderItem = Tables<'order_items'>
-export type Notification = Tables<'notifications'>
-export type DemoSession = Tables<'demo_sessions'>
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
-export type ProfileInsert = Inserts<'profiles'>
-export type ProductInsert = Inserts<'products'>
-export type OrderInsert = Inserts<'orders'>
-export type OrderItemInsert = Inserts<'order_items'>
-export type NotificationInsert = Inserts<'notifications'>
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
-export type ProfileUpdate = Updates<'profiles'>
-export type ProductUpdate = Updates<'products'>
-export type OrderUpdate = Updates<'orders'>
-export type OrderItemUpdate = Updates<'order_items'>
-export type NotificationUpdate = Updates<'notifications'>
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      notification_type: ["info", "success", "warning", "error"],
+      order_status: [
+        "pending",
+        "confirmed",
+        "priced",
+        "assigned",
+        "out_for_delivery",
+        "delivered",
+        "completed",
+        "cancelled",
+      ],
+      user_role: ["admin", "restaurant", "driver", "demo"],
+    },
+  },
+} as const

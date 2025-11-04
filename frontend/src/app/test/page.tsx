@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+ 
+// @ts-ignore
 import { testSupabaseConnection, testAuth } from '@/lib/testConnection'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,12 +21,14 @@ export default function TestPage() {
     setResults({})
 
     // Test connection
-    const connectionResult = await testSupabaseConnection()
+     
+    const connectionResult = await testSupabaseConnection() as any
     setResults(prev => ({ ...prev, connection: connectionResult }))
 
     // Test auth
     await new Promise(resolve => setTimeout(resolve, 500))
-    const authResult = await testAuth()
+     
+    const authResult = await testAuth() as any
     setResults(prev => ({ ...prev, auth: authResult }))
 
     setTesting(false)

@@ -7,8 +7,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { supabase } from '@/lib/supabase'
+import { createBrowserClient } from '@/lib/supabase'
 import { AuthSecurity } from '@/lib/security'
+
+// Create Supabase client instance
+const supabase = createBrowserClient()
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')

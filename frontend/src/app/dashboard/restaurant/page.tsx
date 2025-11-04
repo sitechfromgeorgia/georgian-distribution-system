@@ -1,6 +1,7 @@
 'use client'
+import { logger } from '@/lib/logger'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -25,22 +26,18 @@ export default function RestaurantDashboard() {
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
-  useEffect(() => {
-    loadDashboardData()
-  }, [])
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true)
       const [metricsData, ordersData] = await Promise.all([
         RestaurantUtils.getRestaurantMetrics(),
-        RestaurantUtils.getOrders({ status: ['pending', 'confirmed', 'preparing'] })
+        RestaurantUtils.getOrders({ status: ['pending', 'confirmed', 'priced'] })
       ])
 
       setMetrics(metricsData)
       setRecentOrders(ordersData.slice(0, 5))
     } catch (error) {
-      console.error('Failed to load dashboard data:', error)
+      logger.error('Failed to load dashboard data:', error)
       toast({
         title: 'შეცდომა',
         description: 'დეშბორდის მონაცემების ჩატვირთვა ვერ მოხერხდა',
@@ -49,7 +46,11 @@ export default function RestaurantDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    loadDashboardData()
+  }, [loadDashboardData])
 
   const getStatusIcon = (status: RestaurantOrder['status']) => {
     switch (status) {
@@ -57,13 +58,15 @@ export default function RestaurantDashboard() {
         return <Clock className="h-4 w-4" />
       case 'confirmed':
         return <CheckCircle className="h-4 w-4" />
-      case 'preparing':
+      case 'priced':
         return <Package className="h-4 w-4" />
-      case 'ready':
+      case 'assigned':
         return <CheckCircle className="h-4 w-4" />
       case 'out_for_delivery':
         return <Truck className="h-4 w-4" />
       case 'delivered':
+        return <CheckCircle className="h-4 w-4" />
+      case 'completed':
         return <CheckCircle className="h-4 w-4" />
       case 'cancelled':
         return <AlertCircle className="h-4 w-4" />
@@ -183,7 +186,7 @@ export default function RestaurantDashboard() {
                         <div>
                           <p className="font-medium">შეკვეთა #{order.id.slice(-8)}</p>
                           <p className="text-sm text-muted-foreground">
-                            {RestaurantUtils.formatCurrency(order.total_amount)}
+                            {RestaurantUtils.formatCurrency(order.total_amount || 0)}
                           </p>
                         </div>
                       </div>

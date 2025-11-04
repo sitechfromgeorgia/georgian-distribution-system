@@ -1,5 +1,7 @@
 'use client'
+import { logger } from '@/lib/logger'
 
+import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,23 +12,14 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Upload, X, Plus, Image as ImageIcon } from 'lucide-react'
+import { X, Plus, Image as ImageIcon } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { createBrowserClient } from '@/lib/supabase/client'
+import { createBrowserClient } from '@/lib/supabase'
+import type { Product, ProductInsert } from '@/types/database'
 
-interface Product {
-  id?: string
-  name: string
-  description: string
-  price: number
-  cost_price: number
-  category: string
-  stock_quantity: number
-  min_stock_level: number
-  is_active: boolean
-  image_url?: string
-  tags?: string[]
-}
+// Create Supabase client instance
+const supabase = createBrowserClient()
+
 
 interface ProductFormProps {
   product?: Product | null
@@ -44,16 +37,18 @@ const categories = [
 ]
 
 export function ProductForm({ product, onClose }: ProductFormProps) {
-  const [formData, setFormData] = useState<Product>({
+  const [formData, setFormData] = useState<ProductInsert>({
     name: '',
     description: '',
     price: 0,
     cost_price: 0,
     category: '',
+    unit: '',
     stock_quantity: 0,
     min_stock_level: 10,
-    is_active: true,
-    tags: []
+    image_url: null,
+    tags: null,
+    is_active: true
   })
   const [loading, setLoading] = useState(false)
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -63,14 +58,26 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
 
   useEffect(() => {
     if (product) {
-      setFormData(product)
+      setFormData({
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        cost_price: product.cost_price,
+        category: product.category,
+        unit: product.unit,
+        stock_quantity: product.stock_quantity,
+        min_stock_level: product.min_stock_level,
+        image_url: product.image_url,
+        tags: product.tags,
+        is_active: product.is_active
+      })
       if (product.image_url) {
         setImagePreview(product.image_url)
       }
     }
   }, [product])
 
-  const handleInputChange = (field: keyof Product, value: any) => {
+  const handleInputChange = (field: keyof Product, value: string | number | boolean | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
@@ -112,7 +119,6 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
   const uploadImage = async (): Promise<string | null> => {
     if (!imageFile) return formData.image_url || null
 
-    const supabase = createBrowserClient()
     const fileExt = imageFile.name.split('.').pop()
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
     const filePath = `products/${fileName}`
@@ -156,8 +162,6 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
     setLoading(true)
 
     try {
-      const supabase = createBrowserClient()
-
       // Upload image if there's a new one
       const imageUrl = await uploadImage()
 
@@ -168,10 +172,28 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
       }
 
       if (product?.id) {
-        // Update existing product
-        const { error } = await supabase
+        // Temporary workaround for Supabase type inference issue
+        // TODO: Fix Supabase client type configuration
+        // Using direct Supabase client call with type assertion
+        const updatePayload = {
+          name: productData.name,
+          description: productData.description || null,
+          price: productData.price,
+          cost_price: productData.cost_price,
+          category: productData.category,
+          unit: productData.unit,
+          stock_quantity: productData.stock_quantity || 0,
+          min_stock_level: productData.min_stock_level || 0,
+          image_url: imageUrl,
+          tags: productData.tags,
+          is_active: productData.is_active
+        }
+
+        // @ts-ignore Supabase client type issue
+         
+        const { error } = await (supabase as any)
           .from('products')
-          .update(productData)
+          .update(updatePayload)
           .eq('id', product.id)
 
         if (error) throw error
@@ -182,12 +204,26 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
         })
       } else {
         // Create new product
-        const { error } = await supabase
+        const insertData = {
+          name: productData.name,
+          description: productData.description || null,
+          price: productData.price,
+          cost_price: productData.cost_price,
+          category: productData.category,
+          unit: productData.unit,
+          stock_quantity: productData.stock_quantity || 0,
+          min_stock_level: productData.min_stock_level || 0,
+          image_url: imageUrl,
+          tags: productData.tags,
+          is_active: productData.is_active || true,
+          created_at: new Date().toISOString()
+        } as ProductInsert
+
+        // Type assertion to bypass Supabase type inference issue
+         
+        const { error } = await (supabase as any)
           .from('products')
-          .insert([{
-            ...productData,
-            created_at: new Date().toISOString()
-          }])
+          .insert([insertData])
 
         if (error) throw error
 
@@ -199,7 +235,7 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
 
       onClose()
     } catch (error) {
-      console.error('Error saving product:', error)
+      logger.error('Error saving product:', error)
       toast({
         title: 'შეცდომა',
         description: 'პროდუქტის შენახვა ვერ მოხერხდა',
@@ -253,7 +289,7 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
             <Label htmlFor="description">აღწერა</Label>
             <Textarea
               id="description"
-              value={formData.description}
+              value={formData.description || ''}
               onChange={(e) => handleInputChange('description', e.target.value)}
               placeholder="პროდუქტის დეტალური აღწერა"
               rows={3}
@@ -268,9 +304,11 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
             <CardContent>
               {imagePreview ? (
                 <div className="relative">
-                  <img
+                  <Image
                     src={imagePreview}
                     alt="Product preview"
+                    width={400}
+                    height={200}
                     className="w-full h-48 object-cover rounded-lg"
                   />
                   <Button
@@ -279,6 +317,7 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
                     size="sm"
                     className="absolute top-2 right-2"
                     onClick={removeImage}
+                    aria-label="Remove image"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -295,6 +334,7 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
                         accept="image/*"
                         onChange={handleImageUpload}
                         className="hidden"
+                        aria-label="ატვირთეთ პროდუქტის სურათი"
                       />
                     </Label>
                     <p className="text-xs text-muted-foreground">
@@ -421,22 +461,22 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
           <Card>
             <CardContent className="pt-4">
               <div className="text-sm">
-                <span className="text-muted-foreground">სტატუსი:</span>
-                <span className={`font-medium ml-2 ${
-                  formData.stock_quantity <= 0
-                    ? 'text-red-600'
-                    : formData.stock_quantity <= formData.min_stock_level
-                    ? 'text-yellow-600'
-                    : 'text-green-600'
-                }`}>
-                  {formData.stock_quantity <= 0
-                    ? 'არ არის მარაგში'
-                    : formData.stock_quantity <= formData.min_stock_level
-                    ? 'დაბალი მარაგი'
-                    : 'ხელმისაწვდომია'
-                  }
-                </span>
-              </div>
+              <span className="text-muted-foreground">სტატუსი:</span>
+              <span className={`font-medium ml-2 ${
+                (formData.stock_quantity || 0) <= 0
+                  ? 'text-red-600'
+                  : (formData.stock_quantity || 0) <= (formData.min_stock_level || 0)
+                  ? 'text-yellow-600'
+                  : 'text-green-600'
+              }`}>
+                {(formData.stock_quantity || 0) <= 0
+                  ? 'არ არის მარაგში'
+                  : (formData.stock_quantity || 0) <= (formData.min_stock_level || 0)
+                  ? 'დაბალი მარაგი'
+                  : 'ხელმისაწვდომია'
+                }
+              </span>
+            </div>
             </CardContent>
           </Card>
         </TabsContent>

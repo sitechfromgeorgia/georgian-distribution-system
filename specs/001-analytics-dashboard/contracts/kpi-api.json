@@ -1,0 +1,279 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Analytics KPI API",
+    "version": "1.0.0",
+    "description": "API for retrieving aggregated KPI metrics for the Analytics Dashboard"
+  },
+  "servers": [
+    {
+      "url": "/api/analytics",
+      "description": "Analytics API endpoints"
+    }
+  ],
+  "paths": {
+    "/kpis": {
+      "get": {
+        "summary": "Get KPI metrics for date range and filters",
+        "description": "Returns aggregated KPIs (orders per day, on-time rate, average delivery time) for the specified date range and optional status filters. Requires Admin or Operations Manager role.",
+        "operationId": "getKPIs",
+        "security": [
+          {
+            "supabaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "description": "Start date for date range filter (ISO 8601 format, UTC+4 Georgia time)",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2025-11-01T00:00:00+04:00"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "description": "End date for date range filter (ISO 8601 format, UTC+4 Georgia time)",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2025-11-07T23:59:59+04:00"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Optional order status filter (comma-separated list). Omit to include all statuses.",
+            "schema": {
+              "type": "string",
+              "example": "delivered,completed"
+            },
+            "explode": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "KPI metrics successfully calculated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KPISummary"
+                },
+                "example": {
+                  "orders_per_day": 7.14,
+                  "on_time_rate": 85.5,
+                  "avg_delivery_time": 52,
+                  "total_orders": 50,
+                  "excluded_count": 3,
+                  "date_range": {
+                    "from": "2025-11-01T00:00:00+04:00",
+                    "to": "2025-11-07T23:59:59+04:00"
+                  },
+                  "filters": {
+                    "status": ["delivered", "completed"]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters (e.g., invalid date format, from > to, range > 12 months)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Invalid date range",
+                  "message": "Start date must be before or equal to end date",
+                  "code": "INVALID_DATE_RANGE"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required - missing or invalid JWT token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Unauthorized",
+                  "message": "Authentication required",
+                  "code": "UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - user lacks required role (Admin or Operations Manager)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Forbidden",
+                  "message": "Insufficient permissions to access analytics dashboard",
+                  "code": "FORBIDDEN"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Internal Server Error",
+                  "message": "An unexpected error occurred while calculating KPIs",
+                  "code": "INTERNAL_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "KPISummary": {
+        "type": "object",
+        "required": [
+          "orders_per_day",
+          "on_time_rate",
+          "avg_delivery_time",
+          "total_orders",
+          "excluded_count",
+          "date_range",
+          "filters"
+        ],
+        "properties": {
+          "orders_per_day": {
+            "type": "number",
+            "format": "float",
+            "description": "Average number of orders per calendar day in the date range",
+            "minimum": 0,
+            "example": 7.14
+          },
+          "on_time_rate": {
+            "type": "number",
+            "format": "float",
+            "nullable": true,
+            "description": "Percentage of delivered orders that met the on-time delivery threshold (30 min tolerance). Null if no delivered orders.",
+            "minimum": 0,
+            "maximum": 100,
+            "example": 85.5
+          },
+          "avg_delivery_time": {
+            "type": "number",
+            "format": "float",
+            "nullable": true,
+            "description": "Average delivery time in minutes from order creation to delivery completion. Null if no completed orders.",
+            "minimum": 0,
+            "example": 52
+          },
+          "total_orders": {
+            "type": "integer",
+            "description": "Total number of orders matching the date range and status filters",
+            "minimum": 0,
+            "example": 50
+          },
+          "excluded_count": {
+            "type": "integer",
+            "description": "Number of orders excluded from time-based KPIs due to missing timestamps",
+            "minimum": 0,
+            "example": 3
+          },
+          "date_range": {
+            "$ref": "#/components/schemas/DateRange"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/FilterCriteria"
+          }
+        }
+      },
+      "DateRange": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Start date of the range (ISO 8601 timestamp, UTC+4 Georgia time)",
+            "example": "2025-11-01T00:00:00+04:00"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time",
+            "description": "End date of the range (ISO 8601 timestamp, UTC+4 Georgia time)",
+            "example": "2025-11-07T23:59:59+04:00"
+          }
+        }
+      },
+      "FilterCriteria": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "confirmed",
+                "priced",
+                "assigned",
+                "out_for_delivery",
+                "delivered",
+                "completed",
+                "cancelled"
+              ]
+            },
+            "description": "Order status values to include in KPI calculations. Empty array means all statuses.",
+            "example": ["delivered", "completed"]
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error", "message", "code"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Short error category",
+            "example": "Invalid date range"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message",
+            "example": "Start date must be before or equal to end date"
+          },
+          "code": {
+            "type": "string",
+            "description": "Machine-readable error code",
+            "example": "INVALID_DATE_RANGE"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "supabaseAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Supabase JWT token from authentication. Include in Authorization header as 'Bearer <token>'"
+      }
+    }
+  }
+}

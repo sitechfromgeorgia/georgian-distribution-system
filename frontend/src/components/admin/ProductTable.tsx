@@ -1,42 +1,30 @@
 'use client'
+import { logger } from '@/lib/logger'
 
-import { useState, useEffect } from 'react'
+import Image from 'next/image'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   MoreHorizontal,
   Edit,
   Trash2,
   Eye,
-  Package,
   AlertTriangle,
   CheckCircle,
   XCircle,
   Image as ImageIcon
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { createBrowserClient } from '@/lib/supabase/client'
+import { createBrowserClient } from '@/lib/supabase'
+import { Product } from '@/types/database'
 
-interface Product {
-  id: string
-  name: string
-  description: string
-  price: number
-  cost_price: number
-  category: string
-  stock_quantity: number
-  min_stock_level: number
-  is_active: boolean
-  image_url?: string
-  created_at: string
-  updated_at: string
-}
+// Create Supabase client instance
+const supabase = createBrowserClient()
 
 interface ProductTableProps {
   searchTerm: string
@@ -56,14 +44,9 @@ export function ProductTable({ searchTerm, categoryFilter, onEditProduct }: Prod
 
   const itemsPerPage = 20
 
-  useEffect(() => {
-    fetchProducts()
-  }, [searchTerm, categoryFilter, currentPage, sortBy, sortOrder])
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true)
-      const supabase = createBrowserClient()
       let query = supabase
         .from('products')
         .select('*', { count: 'exact' })
@@ -93,7 +76,7 @@ export function ProductTable({ searchTerm, categoryFilter, onEditProduct }: Prod
       setProducts(data || [])
       setTotalPages(Math.ceil((count || 0) / itemsPerPage))
     } catch (error) {
-      console.error('Error fetching products:', error)
+      logger.error('Error fetching products:', error)
       toast({
         title: 'შეცდომა',
         description: 'პროდუქტების ჩატვირთვა ვერ მოხერხდა',
@@ -102,7 +85,11 @@ export function ProductTable({ searchTerm, categoryFilter, onEditProduct }: Prod
     } finally {
       setLoading(false)
     }
-  }
+  }, [searchTerm, categoryFilter, currentPage, sortBy, sortOrder, toast])
+
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
 
   const handleSelectProduct = (productId: string, checked: boolean) => {
     if (checked) {
@@ -122,9 +109,10 @@ export function ProductTable({ searchTerm, categoryFilter, onEditProduct }: Prod
 
   const handleBulkActivate = async () => {
     try {
-      const supabase = createBrowserClient()
-      const { error } = await supabase
-        .from('products')
+      // Type assertion to bypass Supabase type inference issue
+       
+      const productsTable = supabase.from('products') as any
+      const { error } = await productsTable
         .update({ is_active: true })
         .in('id', selectedProducts)
 
@@ -138,7 +126,7 @@ export function ProductTable({ searchTerm, categoryFilter, onEditProduct }: Prod
       fetchProducts()
       setSelectedProducts([])
     } catch (error) {
-      console.error('Error activating products:', error)
+      logger.error('Error activating products:', error)
       toast({
         title: 'შეცდომა',
         description: 'პროდუქტების გააქტიურება ვერ მოხერხდა',
@@ -149,9 +137,10 @@ export function ProductTable({ searchTerm, categoryFilter, onEditProduct }: Prod
 
   const handleBulkDeactivate = async () => {
     try {
-      const supabase = createBrowserClient()
-      const { error } = await supabase
-        .from('products')
+      // Type assertion to bypass Supabase type inference issue
+       
+      const productsTable = supabase.from('products') as any
+      const { error } = await productsTable
         .update({ is_active: false })
         .in('id', selectedProducts)
 
@@ -165,7 +154,7 @@ export function ProductTable({ searchTerm, categoryFilter, onEditProduct }: Prod
       fetchProducts()
       setSelectedProducts([])
     } catch (error) {
-      console.error('Error deactivating products:', error)
+      logger.error('Error deactivating products:', error)
       toast({
         title: 'შეცდომა',
         description: 'პროდუქტების გააქტიურება ვერ მოხერხდა',
@@ -178,7 +167,6 @@ export function ProductTable({ searchTerm, categoryFilter, onEditProduct }: Prod
     if (!confirm('დარწმუნებული ხართ რომ გსურთ პროდუქტის წაშლა?')) return
 
     try {
-      const supabase = createBrowserClient()
       const { error } = await supabase
         .from('products')
         .delete()
@@ -193,7 +181,7 @@ export function ProductTable({ searchTerm, categoryFilter, onEditProduct }: Prod
 
       fetchProducts()
     } catch (error) {
-      console.error('Error deleting product:', error)
+      logger.error('Error deleting product:', error)
       toast({
         title: 'შეცდომა',
         description: 'პროდუქტის წაშლა ვერ მოხერხდა',
@@ -304,9 +292,11 @@ export function ProductTable({ searchTerm, categoryFilter, onEditProduct }: Prod
                   </TableCell>
                   <TableCell>
                     {product.image_url ? (
-                      <img
+                      <Image
                         src={product.image_url}
                         alt={product.name}
+                        width={40}
+                        height={40}
                         className="w-10 h-10 rounded object-cover"
                       />
                     ) : (

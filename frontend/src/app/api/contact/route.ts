@@ -1,6 +1,6 @@
+import { logger } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createServerClient } from '@/lib/supabase/server'
 
 const contactSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     // For now, we'll just log the contact submission
     // In a real implementation, you'd store this in a database or send via email
-    console.log('Contact submission:', {
+    logger.info('Contact submission:', {
       name: validatedData.name,
       email: validatedData.email,
       company: validatedData.company || null,
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     )
   } catch (error) {
-    console.error('Contact submission error:', error)
+    logger.error('Contact submission error:', error)
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -1,6 +1,10 @@
+import { logger } from '@/lib/logger'
 import { useState, useEffect, useCallback } from 'react'
 import { DriverDelivery, DriverFilters } from '@/types/driver'
-import { supabase } from '@/lib/supabase'
+import { createBrowserClient } from '@/lib/supabase'
+
+// Create Supabase client instance
+const supabase = createBrowserClient()
 
 interface UseDriverDeliveriesReturn {
   deliveries: DriverDelivery[]
@@ -36,7 +40,8 @@ export function useDriverDeliveries(initialFilters: DriverFilters = {}): UseDriv
         throw new Error('User not authenticated')
       }
 
-      let query = supabase
+       
+      let query = (supabase as any)
         .from('deliveries')
         .select(`
           *,
@@ -80,7 +85,8 @@ export function useDriverDeliveries(initialFilters: DriverFilters = {}): UseDriv
         throw fetchError
       }
 
-      const transformedDeliveries: DriverDelivery[] = (data || []).map(item => ({
+       
+      const transformedDeliveries: DriverDelivery[] = (data || []).map((item: any) => ({
         id: item.id,
         order_id: item.order_id,
         driver_id: item.driver_id,
@@ -120,7 +126,7 @@ export function useDriverDeliveries(initialFilters: DriverFilters = {}): UseDriv
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch deliveries')
-      console.error('Error fetching deliveries:', err)
+      logger.error('Error fetching deliveries:', err)
     } finally {
       setLoading(false)
     }
@@ -142,6 +148,7 @@ export function useDriverDeliveries(initialFilters: DriverFilters = {}): UseDriv
     notes?: string
   ): Promise<boolean> => {
     try {
+       
       const updateData: Record<string, any> = {
         status,
         updated_at: new Date().toISOString()
@@ -159,7 +166,8 @@ export function useDriverDeliveries(initialFilters: DriverFilters = {}): UseDriv
         updateData.notes = notes
       }
 
-      const { error } = await supabase
+       
+      const { error } = await (supabase as any)
         .from('deliveries')
         .update(updateData)
         .eq('id', deliveryId)
@@ -180,7 +188,7 @@ export function useDriverDeliveries(initialFilters: DriverFilters = {}): UseDriv
       return true
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update delivery status')
-      console.error('Error updating delivery status:', err)
+      logger.error('Error updating delivery status:', err)
       return false
     }
   }, [deliveries])

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server';
 import { DemoUtils } from '@/lib/demo-utils';
 
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
       sampleData
     });
   } catch (error) {
-    console.error('Demo setup error:', error);
+    logger.error('Demo setup error:', error);
     return NextResponse.json(
       { error: 'Failed to setup demo' },
       { status: 500 }
@@ -50,7 +51,7 @@ export async function GET() {
       sampleData
     });
   } catch (error) {
-    console.error('Demo status error:', error);
+    logger.error('Demo status error:', error);
     return NextResponse.json(
       { error: 'Failed to get demo status' },
       { status: 500 }

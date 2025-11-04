@@ -1,7 +1,15 @@
+import { logger } from '@/lib/logger'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { Database } from '@/types/database'
+
+type OrderStatus = Database['public']['Enums']['order_status']
 import { z } from 'zod'
+import { instrumentAPIHandler } from '@/lib/monitoring/api-instrumentation'
+import { configureEndpointSLA, SLA_CONFIGS } from '@/lib/monitoring/api-instrumentation'
+
+// Configure SLA for this endpoint
+configureEndpointSLA('/api/orders/analytics', 'GET', SLA_CONFIGS.ORDERS_ANALYTICS)
 
 type Order = Database['public']['Tables']['orders']['Row']
 type OrderItem = Database['public']['Tables']['order_items']['Row']
@@ -28,8 +36,6 @@ const analyticsQuerySchema = z.object({
   status: z.enum(['pending', 'confirmed', 'priced', 'assigned', 'out_for_delivery', 'delivered', 'completed', 'cancelled']).optional(),
   limit: z.number().int().min(1).max(1000).optional().default(100)
 })
-
-type OrderStatus = 'pending' | 'confirmed' | 'priced' | 'assigned' | 'out_for_delivery' | 'delivered' | 'completed' | 'cancelled'
 
 /**
  * GET /api/orders/analytics
@@ -146,7 +152,7 @@ export async function GET(request: NextRequest) {
     const { data: orders, error: ordersError } = await ordersQuery
 
     if (ordersError) {
-      console.error('Failed to fetch orders for analytics:', ordersError)
+      logger.error('Failed to fetch orders for analytics:', ordersError)
       return NextResponse.json(
         { error: 'Failed to fetch analytics data' },
         { status: 500 }
@@ -182,7 +188,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Analytics API error:', error)
+    logger.error('Analytics API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -36,7 +36,7 @@ export function FeedbackForm({ trigger }: FeedbackFormProps) {
 
     setIsSubmitting(true);
     try {
-      await submitFeedback(rating, feedback, contactInfo);
+      await submitFeedback();
 
       toast({
         title: "Thank you for your feedback!",

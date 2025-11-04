@@ -1,9 +1,9 @@
-import { Database } from '@/types/database'
+import { logger } from '@/lib/logger'
+import { Database, OrderStatus } from '@/types/database'
 import { ORDER_STATUSES, USER_ROLES } from '@/constants'
-import { createServerClient } from './supabase/server'
+import { createServerClient } from '@/lib/supabase/server'
 
 type Order = Database['public']['Tables']['orders']['Row']
-type OrderStatus = typeof ORDER_STATUSES[keyof typeof ORDER_STATUSES]
 type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES]
 
 /**
@@ -73,7 +73,7 @@ export class OrderHistoryManager {
         } as any)
 
       if (error) {
-        console.error('Failed to record status change:', error)
+        logger.error('Failed to record status change:', error)
         // Don't throw - logging failure shouldn't break the main flow
       }
 
@@ -85,15 +85,11 @@ export class OrderHistoryManager {
         user_role: userRole,
         old_data: oldStatus ? { status: oldStatus } : undefined,
         new_data: { status: newStatus },
-        timestamp: new Date().toISOString(),
-        metadata: {
-          notes,
-          ...metadata
-        }
+        timestamp: new Date().toISOString()
       })
 
     } catch (error) {
-      console.error('Error recording status change:', error)
+      logger.error('Error recording status change:', error)
     }
   }
 
@@ -124,14 +120,14 @@ export class OrderHistoryManager {
         .order('changed_at', { ascending: true })
 
       if (error) {
-        console.error('Failed to get order status history:', error)
+        logger.error('Failed to get order status history:', error)
         return []
       }
 
       return data || []
 
     } catch (error) {
-      console.error('Error getting order status history:', error)
+      logger.error('Error getting order status history:', error)
       return []
     }
   }
@@ -150,14 +146,14 @@ export class OrderHistoryManager {
         .order('timestamp', { ascending: true })
 
       if (error) {
-        console.error('Failed to get order audit log:', error)
+        logger.error('Failed to get order audit log:', error)
         return []
       }
 
       return data || []
 
     } catch (error) {
-      console.error('Error getting order audit log:', error)
+      logger.error('Error getting order audit log:', error)
       return []
     }
   }
@@ -171,14 +167,14 @@ export class OrderHistoryManager {
 
       const { error } = await supabase
         .from('order_audit_logs')
-        .insert(logEntry)
+        .insert(logEntry as any)
 
       if (error) {
-        console.error('Failed to create audit log:', error)
+        logger.error('Failed to create audit log:', error)
       }
 
     } catch (error) {
-      console.error('Error creating audit log:', error)
+      logger.error('Error creating audit log:', error)
     }
   }
 
@@ -215,7 +211,7 @@ export class OrderHistoryManager {
           type: 'status_change',
           timestamp: entry.changed_at,
           description: `Status changed from ${entry.old_status || 'none'} to ${entry.new_status}`,
-          user: entry.profiles?.full_name || 'System',
+          user: String(entry.changed_by || 'System'),
           metadata: {
             old_status: entry.old_status,
             new_status: entry.new_status,
@@ -233,7 +229,7 @@ export class OrderHistoryManager {
             timestamp: log.timestamp,
             description: this.getAuditDescription(log),
             user: 'System', // Would need to join with profiles table
-            metadata: log.metadata
+            metadata: undefined
           })
         }
       })
@@ -242,7 +238,7 @@ export class OrderHistoryManager {
       return timeline.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
 
     } catch (error) {
-      console.error('Error getting order timeline:', error)
+      logger.error('Error getting order timeline:', error)
       return []
     }
   }
@@ -277,14 +273,14 @@ export class OrderHistoryManager {
         .order('changed_at', { ascending: false })
 
       if (error) {
-        console.error('Failed to get user activity:', error)
+        logger.error('Failed to get user activity:', error)
         return []
       }
 
       return data || []
 
     } catch (error) {
-      console.error('Error getting user activity:', error)
+      logger.error('Error getting user activity:', error)
       return []
     }
   }
@@ -311,7 +307,7 @@ export class OrderHistoryManager {
         .lte('changed_at', endDate)
 
       if (error || !changes) {
-        console.error('Failed to get status change stats:', error)
+        logger.error('Failed to get status change stats:', error)
         return {
           totalChanges: 0,
           changesByStatus: {},
@@ -323,7 +319,8 @@ export class OrderHistoryManager {
       const changesByStatus: Record<string, number> = {}
       const changesByUser: Record<string, number> = {}
 
-      changes.forEach(change => {
+      const typedChanges = (changes || []) as Array<{ new_status: string; changed_by: string }>
+      typedChanges.forEach(change => {
         // Count changes by new status
         changesByStatus[change.new_status] = (changesByStatus[change.new_status] || 0) + 1
 
@@ -339,7 +336,7 @@ export class OrderHistoryManager {
       }
 
     } catch (error) {
-      console.error('Error getting status change stats:', error)
+      logger.error('Error getting status change stats:', error)
       return {
         totalChanges: 0,
         changesByStatus: {},
@@ -365,14 +362,14 @@ export class OrderHistoryManager {
         .select('id')
 
       if (error) {
-        console.error('Failed to cleanup old history:', error)
+        logger.error('Failed to cleanup old history:', error)
         return { deleted: 0 }
       }
 
       return { deleted: data?.length || 0 }
 
     } catch (error) {
-      console.error('Error cleaning up old history:', error)
+      logger.error('Error cleaning up old history:', error)
       return { deleted: 0 }
     }
   }

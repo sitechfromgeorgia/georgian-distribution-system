@@ -2,10 +2,14 @@
  * Service health monitoring for Supabase VPS backend
  */
 
-import { supabase } from './supabase'
+import { createBrowserClient } from '@/lib/supabase'
 import { logger } from './logger'
 import { handleSupabaseError } from './error-handler'
-import { retryWithBackoff } from './retry-handler'
+import { Database } from '@/types/database'
+import { PostgrestSingleResponse } from '@supabase/supabase-js'
+
+// Create Supabase client instance
+const supabase = createBrowserClient()
 
 export interface ServiceStatus {
   database: boolean
@@ -41,18 +45,15 @@ export async function checkServiceHealth(): Promise<ServiceStatus> {
   try {
     // Test Database - Try to access profiles table
     try {
-      const { error, count } = await retryWithBackoff(
-        () => supabase.from('profiles').select('count', { count: 'exact' }).limit(1),
-        { maxRetries: 2, baseDelay: 500 }
-      )
-      
-      if (!error && typeof count === 'number') {
+      const queryResult = await supabase.from('profiles').select('count', { count: 'exact' }).limit(1).single()
+       
+      if (!queryResult.error && typeof queryResult.count === 'number') {
         results.database = true
-        results.details.database = `Connected (${count} profiles)`
-        logger.test('Database Health Check', 'PASS', { count })
+        results.details.database = `Connected (${queryResult.count} profiles)`
+        logger.test('Database Health Check', 'PASS', { count: queryResult.count })
       } else {
-        results.details.database = `Error: ${error?.message}`
-        logger.test('Database Health Check', 'FAIL', { error: error?.message })
+        results.details.database = `Error: ${queryResult.error?.message}`
+        logger.test('Database Health Check', 'FAIL', { error: queryResult.error?.message })
       }
     } catch (error) {
       results.details.database = `Failed: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -61,10 +62,7 @@ export async function checkServiceHealth(): Promise<ServiceStatus> {
 
     // Test Auth - Check if auth service is responsive
     try {
-      const { error } = await retryWithBackoff(
-        () => supabase.auth.getSession(),
-        { maxRetries: 2, baseDelay: 500 }
-      )
+      const { error } = await supabase.auth.getSession()
       
       if (!error) {
         results.auth = true
@@ -81,10 +79,7 @@ export async function checkServiceHealth(): Promise<ServiceStatus> {
 
     // Test Storage - Check if storage buckets are accessible
     try {
-      const { data, error } = await retryWithBackoff(
-        () => supabase.storage.listBuckets(),
-        { maxRetries: 2, baseDelay: 500 }
-      )
+      const { data, error } = await supabase.storage.listBuckets()
       
       if (!error && data) {
         results.storage = true
@@ -104,7 +99,7 @@ export async function checkServiceHealth(): Promise<ServiceStatus> {
       const channel = supabase.channel('health-check')
       let realtimeSuccess = false
       
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => {
           reject(new Error('Realtime connection timeout'))
         }, 5000)
@@ -113,7 +108,7 @@ export async function checkServiceHealth(): Promise<ServiceStatus> {
           if (status === 'SUBSCRIBED') {
             clearTimeout(timeout)
             realtimeSuccess = true
-            resolve(undefined)
+            resolve()
           }
           if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             clearTimeout(timeout)
@@ -147,9 +142,9 @@ export async function checkServiceHealth(): Promise<ServiceStatus> {
     }
 
     const latency = Date.now() - startTime
-    logger.performance('Service Health Check', latency, { 
-      healthyServices: healthyCount, 
-      overall 
+    logger.performance.log('Service Health Check', latency, {
+      healthyServices: healthyCount,
+      overall
     })
 
     return {
@@ -185,7 +180,7 @@ export async function quickConnectivityTest(): Promise<{
   const startTime = Date.now()
   
   try {
-    const { error } = await supabase.from('profiles').select('count').limit(1)
+    const { error } = await supabase.from('profiles').select('count').limit(1).single()
     const latency = Date.now() - startTime
     
     if (error) {
@@ -218,7 +213,7 @@ export async function testBackendAccessibility(): Promise<{
   realtime: boolean
   details: Record<string, string>
 }> {
-  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://data.greenland77.ge'
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://akxmacfsltzhbnunoepb.supabase.co'
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   
   const results = {

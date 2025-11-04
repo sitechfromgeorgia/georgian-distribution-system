@@ -1,31 +1,18 @@
-# Georgian Distribution Management System - Comprehensive .gitignore
+# Georgian Distribution System - .gitignore
 
-# =============================================================================
-# NODE MODULES AND PACKAGE MANAGERS
-# =============================================================================
-# Dependencies
+# Node.js dependencies
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
 
-# =============================================================================
-# NEXT.JS SPECIFIC
-# =============================================================================
-# Next.js
+# Build outputs
+dist/
+build/
 .next/
 out/
-build/
-dist/
-
-# Production
-/build
-/out/
 
 # Runtime data
 pids
@@ -40,19 +27,20 @@ coverage/
 # nyc test coverage
 .nyc_output
 
-# Grunt intermediate storage
+# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
 .grunt
 
-# Bower dependency directory
+# Bower dependency directory (https://bower.io/)
 bower_components
 
 # node-waf configuration
 .lock-wscript
 
-# Compiled binary addons
+# Compiled binary addons (https://nodejs.org/api/addons.html)
 build/Release
 
 # Dependency directories
+node_modules/
 jspm_packages/
 
 # TypeScript v1 declaration files
@@ -89,145 +77,33 @@ typings/
 .env.test.local
 .env.production.local
 
-# parcel-bundler cache
+# parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
 
 # Next.js build output
 .next
+out
 
 # Nuxt.js build / generate output
 .nuxt
+dist
+
+# Gatsby files
+.cache/
+public
 
 # Storybook build outputs
 .out
 .storybook-out
 
-# Rollup.js default build output
-dist/
-
-# Uncomment the public line in if your project uses Gatsby and not Next.js
-# https://nextjs.org/blog/next-9-1#public-directory-support
-# public
-
-# Storybook
-storybook-static
-
-# =============================================================================
-# SUPABASE SPECIFIC
-# =============================================================================
-# Supabase local development
-.supabase
-supabase/
-
-# Supabase config
-config.toml
-.env.supabase
-
-# Database migrations (keep schema files, exclude data)
-*.sql
-!supabase/tables/*.sql
-!supabase/migrations/*.sql
-
-# Supabase logs
-supabase/logs/
-
-# Database dumps
-*.dump
-*.backup
-*.sql.gz
-
-# =============================================================================
-# DOCKER SPECIFIC
-# =============================================================================
-Dockerfile.prod
-docker-compose.override.yml
-.dockerignore
-
-# =============================================================================
-# IDE AND EDITORS
-# =============================================================================
-# Visual Studio Code
-.vscode/
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-*.code-workspace
-
-# Sublime Text
-*.sublime-project
-*.sublime-workspace
-
-# Vim
-*.swp
-*.swo
-*~
-
-# Emacs
-*~
-\#*\#
-/.emacs.desktop
-/.emacs.desktop.lock
-*.elc
-auto-save-list
-tramp
-.\#*
-
-# JetBrains IDEs
-.idea/
-*.iml
-*.iws
-*.ipr
-
-# Eclipse
-.metadata
-bin/
+# Temporary folders
 tmp/
-*.tmp
-*.bak
-*.swp
-*~.project
-*.class
-*.classpath
-.settings/
+temp/
 
-# =============================================================================
-# OPERATING SYSTEM FILES
-# =============================================================================
-# Windows
-Thumbs.db
-Thumbs.db:encryptable
-ehthumbs.db
-ehthumbs_vista.db
-*.stackdump
-Desktop.ini
-$RECYCLE.BIN/
-
-# macOS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-.FuseBox*
-.directory
-.Trash-*
-
-# Linux
-*~
-
-# =============================================================================
-# LOGS AND CACHE
-# =============================================================================
-logs/
+# Logs
+logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
 # Runtime data
 pids
@@ -235,154 +111,159 @@ pids
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
-coverage/
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# nyc test coverage
-.nyc_output
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# Grunt intermediate storage
-.grunt
+# Custom build directories
+.turbo/
 
-# Bower dependency directory
-bower_components
+# Testing
+/coverage
+/coverage/**
+/.jest
+/.jest/cache
+/.jest/cache/**
 
-# node-waf configuration
-.lock-wscript
+# Supabase
+.supabase/
 
-# Compiled binary addons
-build/Release
+# Local development
+.local/
 
-# Dependency directories
-node_modules/
-jspm_packages/
+# Frontend specific
+/frontend/.next/
+/frontend/out/
+/frontend/node_modules/
+/frontend/.vercel
 
-# TypeScript v1 declaration files
-typings/
+# Database migrations and backups
+database/backups/
+*.sql
+*.dump
 
-# TypeScript cache
-*.tsbuildinfo
+# Docker
+.dockerignore
+docker-compose.override.yml
 
-# Optional npm cache directory
-.npm
+# MCP tools and configurations
+.kilocode/mcp-secrets/
+.kilocode/temp/
+.mcp-storage/
 
-# Optional eslint cache
-.eslintcache
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# parcel-bundler cache
-.cache
-.parcel-cache
-
-# Stores VSCode versions used for testing VSCode extensions
-.vscode-test
-
-# =============================================================================
-# SECURITY AND SENSITIVE FILES
-# =============================================================================
-# JWT Keys and Secrets
+# Project specific
+private-keys/
 *.key
 *.pem
 *.p12
 *.pfx
-secrets/
-private/
-private-keys/
 
-# API Keys and Credentials
-api-keys.txt
-credentials.json
-service-account.json
-google-credentials.json
+# Environment files with sensitive data
+.env.production
+.env.staging
+.env.development.local
+.env.local
+
+# Build artifacts
+*.tgz
+*.tar.gz
+dist/
+build/
+out/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Package managers
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# API keys and secrets
+secrets/
+.secrets/
+*secret*
+*private*
+*key*
+
+# Backup files
+*.bak
+*.backup
+backup/
+
+# Documentation builds
+docs/build/
+docs/.docusaurus/
+
+# CI/CD
+.github/workflows/*.yml
+!.github/workflows/README.md
+
+# Cloud provider specific
+.vercel
+.netlify
+
+# Sentry
+.sentryclirc
+
+# Lighthouse CI
+.lighthouseci/
+
+# Percy
+percy/
+
+# Chromatic
+chromatic-build/
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Turbo
+turbo.json
+
+# Stackblitz
+.stackblitz/
+
+# Local Netlify folder
+.netlify
+
+# SvelteKit
+.svelte-kit
+
+# Prisma
+prisma/migrations/
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
 
-# =============================================================================
-# BUILD ARTIFACTS AND CACHE
-# =============================================================================
-# Webpack
-.webpack/
-
-# Rollup
-.rollup.cache/
-
-# Parcel
-.parcel-cache/
-
-# Temporary folders
-tmp/
-temp/
+# Documentation temporary files
 .tmp/
-
-# =============================================================================
-# TESTING AND COVERAGE
-# =============================================================================
-test-results/
-playwright-report/
-test-results.xml
-
-# =============================================================================
-# DEPLOYMENT AND CI/CD
-# =============================================================================
-.vercel
-.netlify
-
-# =============================================================================
-# PROJECT SPECIFIC
-# =============================================================================
-# Exclude sensitive project files
-*.backup
-*.old
-*.bak
-old/
-deprecated/
-temp-data/
-
-# Exclude generated files that should not be in version control
-generated/
-types/generated/
-
-# Exclude data files (keep structure, not data)
-data/
-*.json
-!package.json
-!package-lock.json
-!pnpm-lock.yaml
-
-# Exclude media files that might contain sensitive information
-uploads/
-media/
-assets/private/
-
-# =============================================================================
-# GEORGIAN DISTRIBUTION SYSTEM SPECIFIC
-# =============================================================================
-# Demo data and test accounts
-demo-data/
-test-accounts/
-*.demo
-
-# VPS and deployment specific
-vps-config/
-deploy-keys/
-deployment-scripts/
-
-# Performance and monitoring
-logs/
-metrics/
-monitoring/
-
-# =============================================================================
-# END OF .GITIGNORE
-# =============================================================================
+.temp/.mcp.json

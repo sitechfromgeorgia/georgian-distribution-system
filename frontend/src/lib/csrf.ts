@@ -16,12 +16,15 @@ export class SecurityHeaders {
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
         "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: https:",
+        "img-src 'self' data: https: blob:",
         "font-src 'self' data:",
-        "connect-src 'self' https://data.greenland77.ge wss://data.greenland77.ge",
+        "connect-src 'self' https://akxmacfsltzhbnunoepb.supabase.co wss://akxmacfsltzhbnunoepb.supabase.co",
         "frame-ancestors 'none'",
         "base-uri 'self'",
-        "form-action 'self'"
+        "form-action 'self'",
+        "object-src 'self' data: blob:",
+        "media-src 'self' data: blob:",
+        "child-src 'self'"
       ].join('; '),
 
       // Prevent clickjacking
@@ -138,43 +141,32 @@ export class RateLimiter {
 }
 
 /**
- * CSRF Protection - DEPRECATED
- *
- * CSRF protection is now handled natively by Supabase Auth.
- * This class is kept for reference but is no longer used.
- *
- * DELETE ALL REFERENCES TO CSRFProtection as Supabase handles security automatically.
+ * CSRF Protection Utilities
+ * Provides CSRF token generation and validation
  */
-export class CSRFProtection {
 
-  /**
-   * NOTE: This class is deprecated
-   * Supabase Auth provides automatic CSRF protection
-   * No custom CSRF implementation is needed
-   */
+/**
+ * Generate a cryptographically secure CSRF token
+ */
+export function getCsrfToken(): string {
+  const array = new Uint8Array(32)
+  crypto.getRandomValues(array)
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+}
 
-  static generateToken(): string {
-    console.warn('CSRFProtection.generateToken() is deprecated. Supabase handles CSRF protection.')
-    return crypto.randomUUID()
+/**
+ * Validate CSRF token format and integrity
+ */
+export function validateCsrfToken(token: string): boolean {
+  if (!token || typeof token !== 'string') {
+    return false
   }
-
-  static validateToken(request: NextRequest): boolean {
-    console.warn('CSRFProtection.validateToken() is deprecated. Supabase handles CSRF protection.')
-    return true // Always allow as Supabase handles this
+  
+  // Check if token is 64 characters (32 bytes in hex)
+  if (token.length !== 64) {
+    return false
   }
-
-  static setToken(response: NextResponse, token: string): NextResponse {
-    console.warn('CSRFProtection.setToken() is deprecated. Supabase handles CSRF protection.')
-    return response
-  }
-
-  static getTokenForClient(request: NextRequest): string | null {
-    console.warn('CSRFProtection.getTokenForClient() is deprecated. Supabase handles CSRF protection.')
-    return null
-  }
-
-  static middleware(request: NextRequest): NextResponse | null {
-    console.warn('CSRFProtection.middleware() is deprecated. Supabase handles CSRF protection.')
-    return null
-  }
+  
+  // Check if token contains only valid hex characters
+  return /^[a-f0-9]{64}$/i.test(token)
 }

@@ -1,9 +1,16 @@
 'use client'
+import { logger } from '@/lib/logger'
 
 import { useState } from 'react'
 import { ServiceStatusBanner } from '@/components/ServiceStatusBanner'
+ 
+// @ts-ignore
 import { runVPSDiagnostics } from '@/lib/vps-connection-test'
+ 
+// @ts-ignore
 import { testSupabaseConnection, testAuth } from '@/lib/testConnection'
+ 
+// @ts-ignore
 import { quickConnectivityTest } from '@/lib/service-health'
 import type { Session } from '@supabase/supabase-js'
 
@@ -61,12 +68,14 @@ export default function EnhancedTestPage() {
     setResults(prev => ({ ...prev, connectivity: connectivityResult }))
 
     // Test 2: Basic connection
-    const connectionResult = await testSupabaseConnection()
+     
+    const connectionResult = await testSupabaseConnection() as any
     setResults(prev => ({ ...prev, connection: connectionResult }))
 
     // Test 3: Auth system
     await new Promise(resolve => setTimeout(resolve, 500))
-    const authResult = await testAuth()
+     
+    const authResult = await testAuth() as any
     setResults(prev => ({ ...prev, auth: authResult }))
 
     // Test 4: Comprehensive diagnostics
@@ -74,7 +83,7 @@ export default function EnhancedTestPage() {
       const diagnosticResults = await runVPSDiagnostics()
       setDiagnostics(diagnosticResults)
     } catch (error) {
-      console.error('Diagnostics failed:', error)
+      logger.error('Diagnostics failed:', error)
     }
 
     setTesting(false)

@@ -1,44 +1,28 @@
-export interface RestaurantOrder {
-  id: string
-  restaurant_id: string
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'out_for_delivery' | 'delivered' | 'cancelled'
-  total_amount: number
-  items: OrderItem[]
-  delivery_address: string
-  delivery_time?: string
-  special_instructions?: string
-  created_at: string
-  updated_at: string
-  driver_id?: string
+import { Database, Order, OrderItem, Product } from './database'
+
+// Restaurant-specific order type extending database Order
+export interface RestaurantOrder extends Order {
+  items: RestaurantOrderItem[]
   driver_name?: string
   estimated_delivery_time?: string
+  special_instructions?: string
 }
 
-export interface OrderItem {
-  id: string
-  product_id: string
-  product_name: string
-  quantity: number
-  unit_price: number
-  total_price: number
-  notes?: string
-}
-
-export interface Product {
-  id: string
-  name: string
-  description?: string
-  price: number
-  category: string
-  image_url?: string
+// Extended Product type for restaurant-specific fields
+export interface RestaurantProduct extends Product {
   is_available: boolean
-  unit: string
   min_order_quantity?: number
   max_order_quantity?: number
 }
 
+// Restaurant-specific OrderItem with product details
+export interface RestaurantOrderItem extends OrderItem {
+  product_name: string
+}
+
+// Cart item type for restaurant operations
 export interface CartItem {
-  product: Product
+  product: RestaurantProduct
   quantity: number
   notes?: string
 }
@@ -86,10 +70,11 @@ export type OrderStatus = RestaurantOrder['status']
 export const ORDER_STATUSES: Record<OrderStatus, { label: string; color: string }> = {
   pending: { label: 'მოლოდინში', color: 'yellow' },
   confirmed: { label: 'დადასტურებული', color: 'blue' },
-  preparing: { label: 'მზადდება', color: 'orange' },
-  ready: { label: 'მზადაა', color: 'green' },
-  out_for_delivery: { label: 'გზაშია', color: 'purple' },
+  priced: { label: 'ფასირებული', color: 'purple' },
+  assigned: { label: 'მინიჭებული', color: 'indigo' },
+  out_for_delivery: { label: 'გზაშია', color: 'orange' },
   delivered: { label: 'მიწოდებული', color: 'green' },
+  completed: { label: 'დასრულებული', color: 'gray' },
   cancelled: { label: 'გაუქმებული', color: 'red' }
 }
 
@@ -103,3 +88,6 @@ export const PRODUCT_CATEGORIES = [
 ] as const
 
 export type ProductCategory = typeof PRODUCT_CATEGORIES[number]
+
+// Export database types for backward compatibility
+export type { Product, Order, OrderItem } from './database'

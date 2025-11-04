@@ -1,0 +1,287 @@
+{
+  "contract": "Real-time Channels",
+  "version": "1.0.0",
+  "description": "WebSocket channel specifications for real-time order management",
+  "performance": {
+    "latency_target": "<1000ms p99",
+    "reconnection": "<5s",
+    "heartbeat": "30s"
+  },
+  "authentication": {
+    "required": true,
+    "method": "JWT token in WebSocket connection"
+  },
+  "channels": {
+    "product_catalog_changes": {
+      "channel_name": "product-catalog-changes",
+      "description": "Real-time product availability and catalog updates",
+      "subscribers": ["restaurant", "admin", "demo"],
+      "payload": {
+        "type": "object",
+        "required": ["product_id", "action", "timestamp"],
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Product identifier"
+          },
+          "action": {
+            "type": "string",
+            "enum": ["created", "updated", "deleted"],
+            "description": "Type of change made to product"
+          },
+          "changes": {
+            "type": "object",
+            "description": "Fields that changed (only for updates)",
+            "properties": {
+              "name": {"type": "string"},
+              "category": {"type": "string"},
+              "is_active": {"type": "boolean"},
+              "unit": {"type": "string"},
+              "image_url": {"type": "string"},
+              "cost_price": {"type": "number"},
+              "markup_percentage": {"type": "number"}
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Change timestamp in UTC+4"
+          }
+        }
+      },
+      "example": {
+        "product_id": "123e4567-e89b-12d3-a456-426614174000",
+        "action": "updated",
+        "changes": {
+          "name": "ხორცი საკვებად ხელდასმული",
+          "is_active": true,
+          "cost_price": 15.50
+        },
+        "timestamp": "2025-11-01T09:50:45.256Z"
+      }
+    },
+    "new_orders": {
+      "channel_name": "new-orders", 
+      "description": "Admin notifications when restaurants place new orders",
+      "subscribers": ["admin"],
+      "payload": {
+        "type": "object",
+        "required": ["order_id", "restaurant_id", "restaurant_name", "delivery_address", "total_items", "timestamp"],
+        "properties": {
+          "order_id": {"type": "string", "format": "uuid"},
+          "restaurant_id": {"type": "string", "format": "uuid"},
+          "restaurant_name": {"type": "string"},
+          "delivery_address": {"type": "string"},
+          "total_items": {"type": "integer"},
+          "special_instructions": {"type": "string"},
+          "timestamp": {"type": "string", "format": "date-time"}
+        }
+      },
+      "example": {
+        "order_id": "123e4567-e89b-12d3-a456-426614174002",
+        "restaurant_id": "restaurant-uuid",
+        "restaurant_name": "რესტორანი მთავარი",
+        "delivery_address": "თბილისი, ვაკე, ჭავჭავაძის ქუჩა 25",
+        "total_items": 3,
+        "special_instructions": "დაგვირეკეთ ჩამოსვლამდე 30 წუთით ადრე",
+        "timestamp": "2025-11-01T09:49:27.539Z"
+      }
+    },
+    "order_status_changes": {
+      "channel_name_pattern": "order-status-{orderId}",
+      "description": "Order status updates for specific order tracking",
+      "subscribers": ["restaurant", "admin", "driver"],
+      "payload": {
+        "type": "object",
+        "required": ["order_id", "status", "timestamp"],
+        "properties": {
+          "order_id": {"type": "string", "format": "uuid"},
+          "status": {
+            "type": "string",
+            "enum": ["pending", "confirmed", "priced", "out_for_delivery", "delivered", "received", "cancelled"]
+          },
+          "previous_status": {"type": "string"},
+          "driver_id": {"type": "string", "format": "uuid"},
+          "estimated_delivery": {"type": "string", "format": "date-time"},
+          "timestamp": {"type": "string", "format": "date-time"}
+        }
+      },
+      "example": {
+        "order_id": "123e4567-e89b-12d3-a456-426614174002",
+        "status": "out_for_delivery",
+        "previous_status": "priced",
+        "driver_id": "driver-uuid",
+        "estimated_delivery": "2025-11-01T17:00:00.000Z",
+        "timestamp": "2025-11-01T14:45:00.000Z"
+      }
+    },
+    "order_comments": {
+      "channel_name_pattern": "order-comments-{orderId}",
+      "description": "Real-time comment notifications for order communication",
+      "subscribers": ["restaurant", "admin", "driver"],
+      "payload": {
+        "type": "object",
+        "required": ["order_id", "comment_id", "author_role", "comment_type", "comment_text", "timestamp"],
+        "properties": {
+          "order_id": {"type": "string", "format": "uuid"},
+          "comment_id": {"type": "string", "format": "uuid"},
+          "author_id": {"type": "string", "format": "uuid"},
+          "author_role": {"type": "string", "enum": ["restaurant", "admin", "driver"]},
+          "author_name": {"type": "string"},
+          "comment_type": {"type": "string", "enum": ["general", "issue", "praise", "question"]},
+          "comment_text": {"type": "string"},
+          "is_internal": {"type": "boolean"},
+          "timestamp": {"type": "string", "format": "date-time"}
+        }
+      },
+      "example": {
+        "order_id": "123e4567-e89b-12d3-a456-426614174002",
+        "comment_id": "comment-uuid",
+        "author_id": "admin-uuid",
+        "author_role": "admin",
+        "author_name": "ადმინისტრატორი",
+        "comment_type": "general",
+        "comment_text": "შეკვეთა დამუშავდა, ხვალ მიწოდება მოხდება",
+        "is_internal": false,
+        "timestamp": "2025-11-01T10:15:30.000Z"
+      }
+    },
+    "cart_updates": {
+      "channel_name_pattern": "cart-updates-{restaurantId}",
+      "description": "Cross-device cart synchronization for restaurants",
+      "subscribers": ["restaurant"],
+      "payload": {
+        "type": "object",
+        "required": ["restaurant_id", "cart_contents", "timestamp"],
+        "properties": {
+          "restaurant_id": {"type": "string", "format": "uuid"},
+          "cart_contents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["product_id", "product_name", "quantity"],
+              "properties": {
+                "product_id": {"type": "string", "format": "uuid"},
+                "product_name": {"type": "string"},
+                "product_unit": {"type": "string"},
+                "quantity": {"type": "number"},
+                "special_instructions": {"type": "string"}
+              }
+            }
+          },
+          "total_items": {"type": "integer"},
+          "timestamp": {"type": "string", "format": "date-time"}
+        }
+      },
+      "example": {
+        "restaurant_id": "restaurant-uuid",
+        "cart_contents": [
+          {
+            "product_id": "123e4567-e89b-12d3-a456-426614174000",
+            "product_name": "ხორცი საკვებად",
+            "product_unit": "კგ",
+            "quantity": 2.5,
+            "special_instructions": "ნაკლებად ცხიმიანი"
+          }
+        ],
+        "total_items": 2.5,
+        "timestamp": "2025-11-01T09:45:00.000Z"
+      }
+    }
+  },
+  "connection_management": {
+    "heartbeat_interval": "30s",
+    "heartbeat_payload": {
+      "type": "heartbeat",
+      "timestamp": "ISO string"
+    },
+    "reconnection_strategy": {
+      "initial_delay": "1000ms",
+      "max_delay": "30000ms", 
+      "backoff_multiplier": 2,
+      "max_attempts": 10
+    }
+  },
+  "error_handling": {
+    "channel_errors": {
+      "unauthorized": {
+        "code": "CHANNEL_UNAUTHORIZED",
+        "message": "გთხოვთ, შეხვიდეთ ანგარიშში",
+        "action": "redirect_to_login"
+      },
+      "insufficient_permissions": {
+        "code": "CHANNEL_FORBIDDEN", 
+        "message": "ამ არხზე წვდომის უფლება არ გაქვთ",
+        "action": "unsubscribe"
+      },
+      "channel_not_found": {
+        "code": "CHANNEL_NOT_FOUND",
+        "message": "არხი არ არსებობს ან წაშლა",
+        "action": "clean_up_subscription"
+      }
+    }
+  },
+  "georgian_localization": {
+    "status_labels": {
+      "pending": "მოლოდინში",
+      "confirmed": "დადასტურებული",
+      "priced": "ფასდაუდებელი",
+      "out_for_delivery": "მიწოდებაზე",
+      "delivered": "მიწოდებული",
+      "received": "მიღებული",
+      "cancelled": "გაუქმებული"
+    },
+    "comment_types": {
+      "general": "ზოგადი",
+      "issue": "პრობლემა", 
+      "praise": "მადლობა",
+      "question": "კითხვა"
+    },
+    "timezone": "Asia/Tbilisi",
+    "date_format": "DD/MM/YYYY HH:mm:ss"
+  },
+  "security": {
+    "jwt_validation": {
+      "required_fields": ["sub", "role", "iat", "exp"],
+      "role_validation": "role must be in ['admin', 'restaurant', 'driver', 'demo']",
+      "token_expiry": "JWT token must not be expired"
+    },
+    "channel_authorization": {
+      "restaurant_channels": ["cart-updates-{restaurantId}", "order-status-{orderId}", "order-comments-{orderId}"],
+      "admin_channels": ["new-orders", "order-status-{orderId}", "order-comments-{orderId}", "product-catalog-changes"],
+      "driver_channels": ["order-status-{orderId}", "order-comments-{orderId}"],
+      "demo_channels": ["product-catalog-changes", "order-status-{orderId}"]
+    }
+  },
+  "monitoring": {
+    "metrics": [
+      "connection_count",
+      "messages_per_second", 
+      "average_latency",
+      "error_rate",
+      "reconnection_rate"
+    ],
+    "alerts": {
+      "high_error_rate": "> 5% error rate",
+      "high_latency": "> 2s average latency",
+      "connection_failures": "> 10% disconnection rate"
+    }
+  },
+  "testing": {
+    "test_scenarios": [
+      "Basic connection and subscription",
+      "Message delivery confirmation",
+      "Role-based access control",
+      "Reconnection after network failure",
+      "Message ordering consistency",
+      "High frequency updates",
+      "Large payload handling"
+    ],
+    "test_channels": {
+      "test-product-updates": "For testing product catalog changes",
+      "test-order-status": "For testing order status updates", 
+      "test-cart-sync": "For testing cart synchronization"
+    }
+  }
+}

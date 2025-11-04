@@ -11,7 +11,8 @@ export function DemoBanner() {
 
   if (!session) return null;
 
-  const timeRemaining = Math.ceil(sessionTimeRemaining / (1000 * 60 * 60)); // hours
+  const timeMs = sessionTimeRemaining ?? 0;
+  const timeRemaining = Math.ceil(timeMs / (1000 * 60 * 60)); // hours
   const isExpiringSoon = timeRemaining <= 2;
 
   return (

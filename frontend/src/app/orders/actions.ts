@@ -1,17 +1,10 @@
 'use server'
-
-import { createServerActionClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
+import { createServerClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { Database } from '@/types/database'
-import type { PostgrestError } from '@supabase/supabase-js'
-
-type Order = Database['public']['Tables']['orders']['Row']
-type OrderInsert = Database['public']['Tables']['orders']['Insert']
-type OrderUpdate = Database['public']['Tables']['orders']['Update']
-type OrderItem = Database['public']['Tables']['order_items']['Row']
-type OrderItemInsert = Database['public']['Tables']['order_items']['Insert']
-type Profile = Database['public']['Tables']['profiles']['Row']
+import type { Database } from '@/types/database'
+import type { Order, OrderItem } from '@/types/database'
 
 // Validation schemas
 const createOrderSchema = z.object({
@@ -24,7 +17,7 @@ const createOrderSchema = z.object({
 
 const updateOrderStatusSchema = z.object({
   orderId: z.string().uuid(),
-  status: z.enum(['confirmed', 'priced', 'assigned', 'out_for_delivery', 'delivered', 'completed', 'cancelled']),
+  status: z.enum(['pending', 'confirmed', 'priced', 'assigned', 'out_for_delivery', 'delivered', 'completed', 'cancelled']),
   notes: z.string().max(1000).optional()
 })
 
@@ -55,17 +48,16 @@ const cancelOrderSchema = z.object({
  */
 export async function createOrder(formData: FormData) {
   try {
-    const supabase = createServerActionClient()
-
-    // Verify authentication
+    const supabase = await createServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return { error: 'Not authenticated' }
     }
 
     // Verify role
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+     
+    const { data: profile, error: profileError } = await (supabase
+      .from('profiles') as any)
       .select('role')
       .eq('id', user.id)
       .single()
@@ -74,8 +66,7 @@ export async function createOrder(formData: FormData) {
       return { error: 'User profile not found' }
     }
 
-    const userProfile = profile as Profile
-    if (userProfile.role !== 'restaurant') {
+    if (profile.role !== 'restaurant') {
       return { error: 'Unauthorized: Only restaurants can create orders' }
     }
 
@@ -93,9 +84,10 @@ export async function createOrder(formData: FormData) {
       }
     }
 
-    // Create order (transaction)
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
+    // Create order
+     
+    const { data: order, error: orderError } = await (supabase
+      .from('orders') as any)
       .insert({
         restaurant_id: user.id,
         status: 'pending',
@@ -105,25 +97,27 @@ export async function createOrder(formData: FormData) {
       .single()
 
     if (orderError) {
-      console.error('Failed to create order:', orderError)
+      logger.error('Failed to create order:', orderError)
       return { error: 'Failed to create order' }
     }
 
     // Create order items
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(
-        parsed.data.items.map(item => ({
-          order_id: order!.id,
-          product_id: item.product_id,
-          quantity: item.quantity
-        }))
-      )
+    const orderItems = parsed.data.items.map(item => ({
+      order_id: order.id,
+      product_id: item.product_id,
+      quantity: item.quantity
+    }))
+
+     
+    const { error: itemsError } = await (supabase
+      .from('order_items') as any)
+      .insert(orderItems)
 
     if (itemsError) {
       // Rollback: delete order
-      await supabase.from('orders').delete().eq('id', order!.id)
-      console.error('Failed to create order items:', itemsError)
+       
+      await (supabase.from('orders') as any).delete().eq('id', order.id)
+      logger.error('Failed to create order items:', itemsError)
       return { error: 'Failed to create order items' }
     }
 
@@ -132,11 +126,11 @@ export async function createOrder(formData: FormData) {
 
     return {
       success: true,
-      orderId: order!.id,
+      orderId: order.id,
       message: 'Order created successfully'
     }
   } catch (error) {
-    console.error('Unexpected error in createOrder:', error)
+    logger.error('Unexpected error in createOrder:', error)
     return { error: 'An unexpected error occurred' }
   }
 }
@@ -146,17 +140,16 @@ export async function createOrder(formData: FormData) {
  */
 export async function updateOrderStatus(formData: FormData) {
   try {
-    const supabase = createServerActionClient()
-
-    // Verify authentication
+    const supabase = await createServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return { error: 'Not authenticated' }
     }
 
     // Get user role
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+     
+    const { data: profile, error: profileError } = await (supabase
+      .from('profiles') as any)
       .select('role')
       .eq('id', user.id)
       .single()
@@ -164,8 +157,6 @@ export async function updateOrderStatus(formData: FormData) {
     if (profileError || !profile) {
       return { error: 'User profile not found' }
     }
-
-    const userProfile = profile as Profile
 
     // Parse and validate input
     const rawData = {
@@ -183,8 +174,9 @@ export async function updateOrderStatus(formData: FormData) {
     }
 
     // Check permissions based on status change and role
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
+     
+    const { data: order, error: orderError } = await (supabase
+      .from('orders') as any)
       .select('restaurant_id, driver_id, status')
       .eq('id', parsed.data.orderId)
       .single()
@@ -197,20 +189,20 @@ export async function updateOrderStatus(formData: FormData) {
     const canUpdate = (() => {
       switch (parsed.data.status) {
         case 'confirmed':
-          return userProfile.role === 'admin'
+          return profile.role === 'admin'
         case 'priced':
-          return userProfile.role === 'admin'
+          return profile.role === 'admin'
         case 'assigned':
-          return userProfile.role === 'admin'
+          return profile.role === 'admin'
         case 'out_for_delivery':
-          return userProfile.role === 'driver' && order!.driver_id === user.id
+          return profile.role === 'driver' && order.driver_id === user.id
         case 'delivered':
-          return userProfile.role === 'driver' && order!.driver_id === user.id
+          return profile.role === 'driver' && order.driver_id === user.id
         case 'completed':
-          return userProfile.role === 'restaurant' && order!.restaurant_id === user.id
+          return profile.role === 'restaurant' && order.restaurant_id === user.id
         case 'cancelled':
-          return userProfile.role === 'admin' ||
-                   (userProfile.role === 'restaurant' && order!.restaurant_id === user.id && order!.status === 'pending')
+          return profile.role === 'admin' ||
+                 (profile.role === 'restaurant' && order.restaurant_id === user.id && order.status === 'pending')
         default:
           return false
       }
@@ -221,34 +213,35 @@ export async function updateOrderStatus(formData: FormData) {
     }
 
     // Business logic validations
-    if (parsed.data.status === 'completed' && order!.status !== 'delivered') {
+    if (parsed.data.status === 'completed' && order.status !== 'delivered') {
       return { error: 'Order must be delivered before it can be completed' }
     }
 
-    if (parsed.data.status === 'delivered' && order!.status !== 'out_for_delivery') {
+    if (parsed.data.status === 'delivered' && order.status !== 'out_for_delivery') {
       return { error: 'Order must be out for delivery before it can be marked as delivered' }
     }
 
     // Update order
-    const updateData: OrderUpdate = {
+    const updateData = {
       status: parsed.data.status,
       updated_at: new Date().toISOString()
-    }
+    } as Record<string, any>
 
     // Add notes if provided
     if (parsed.data.notes) {
       updateData.notes = parsed.data.notes
     }
 
-    const { data: updatedOrder, error: updateError } = await supabase
-      .from('orders')
-      .update(updateData as OrderUpdate)
+     
+    const { data: updatedOrder, error: updateError } = await (supabase
+      .from('orders') as any)
+      .update(updateData)
       .eq('id', parsed.data.orderId)
       .select()
       .single()
 
     if (updateError) {
-      console.error('Failed to update order status:', updateError)
+      logger.error('Failed to update order status:', updateError)
       return { error: 'Failed to update order status' }
     }
 
@@ -263,7 +256,7 @@ export async function updateOrderStatus(formData: FormData) {
       message: `Order status updated to ${parsed.data.status}`
     }
   } catch (error) {
-    console.error('Unexpected error in updateOrderStatus:', error)
+    logger.error('Unexpected error in updateOrderStatus:', error)
     return { error: 'An unexpected error occurred' }
   }
 }
@@ -273,16 +266,15 @@ export async function updateOrderStatus(formData: FormData) {
  */
 export async function assignOrderToDriver(formData: FormData) {
   try {
-    const supabase = createServerActionClient()
-
+    const supabase = await createServerClient()
     // Verify authentication and admin role
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return { error: 'Not authenticated' }
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+    const { data: profile, error: profileError } = await (supabase
+      .from('profiles') as any)
       .select('role')
       .eq('id', user.id)
       .single()
@@ -291,8 +283,7 @@ export async function assignOrderToDriver(formData: FormData) {
       return { error: 'User profile not found' }
     }
 
-    const userProfile = profile as Profile
-    if (userProfile.role !== 'admin') {
+    if (profile.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' }
     }
 
@@ -311,8 +302,8 @@ export async function assignOrderToDriver(formData: FormData) {
     }
 
     // Verify order exists and is in correct state
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
+    const { data: order, error: orderError } = await (supabase
+      .from('orders') as any)
       .select('status')
       .eq('id', parsed.data.orderId)
       .single()
@@ -321,13 +312,13 @@ export async function assignOrderToDriver(formData: FormData) {
       return { error: 'Order not found' }
     }
 
-    if (order!.status !== 'priced') {
+    if (order.status !== 'priced') {
       return { error: 'Order must be priced before assignment' }
     }
 
     // Verify driver exists and is active
-    const { data: driver, error: driverError } = await supabase
-      .from('profiles')
+    const { data: driver, error: driverError } = await (supabase
+      .from('profiles') as any)
       .select('role, is_active')
       .eq('id', parsed.data.driverId)
       .single()
@@ -336,24 +327,24 @@ export async function assignOrderToDriver(formData: FormData) {
       return { error: 'Driver not found' }
     }
 
-    if (driver!.role !== 'driver' || !driver!.is_active) {
+    if (driver.role !== 'driver' || !driver.is_active) {
       return { error: 'Invalid or inactive driver' }
     }
 
     // Assign order to driver
-    const { data: updatedOrder, error: updateError } = await supabase
-      .from('orders')
+    const { data: updatedOrder, error: updateError } = await (supabase
+      .from('orders') as any)
       .update({
         driver_id: parsed.data.driverId,
-        status: 'assigned' as const,
+        status: 'assigned',
         updated_at: new Date().toISOString()
-      } as OrderUpdate)
+      })
       .eq('id', parsed.data.orderId)
       .select()
       .single()
 
     if (updateError) {
-      console.error('Failed to assign order:', updateError)
+      logger.error('Failed to assign order:', updateError)
       return { error: 'Failed to assign order to driver' }
     }
 
@@ -367,7 +358,7 @@ export async function assignOrderToDriver(formData: FormData) {
       message: 'Order assigned to driver successfully'
     }
   } catch (error) {
-    console.error('Unexpected error in assignOrderToDriver:', error)
+    logger.error('Unexpected error in assignOrderToDriver:', error)
     return { error: 'An unexpected error occurred' }
   }
 }
@@ -377,16 +368,15 @@ export async function assignOrderToDriver(formData: FormData) {
  */
 export async function setOrderPricing(formData: FormData) {
   try {
-    const supabase = createServerActionClient()
-
+    const supabase = await createServerClient()
     // Verify authentication and admin role
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return { error: 'Not authenticated' }
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+    const { data: profile, error: profileError } = await (supabase
+      .from('profiles') as any)
       .select('role')
       .eq('id', user.id)
       .single()
@@ -395,8 +385,7 @@ export async function setOrderPricing(formData: FormData) {
       return { error: 'User profile not found' }
     }
 
-    const userProfile = profile as Profile
-    if (userProfile.role !== 'admin') {
+    if (profile.role !== 'admin') {
       return { error: 'Unauthorized: Admin access required' }
     }
 
@@ -415,8 +404,8 @@ export async function setOrderPricing(formData: FormData) {
     }
 
     // Verify order exists and is in correct state
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
+    const { data: order, error: orderError } = await (supabase
+      .from('orders') as any)
       .select('status')
       .eq('id', parsed.data.orderId)
       .single()
@@ -425,14 +414,14 @@ export async function setOrderPricing(formData: FormData) {
       return { error: 'Order not found' }
     }
 
-    if (order!.status !== 'confirmed') {
+    if (order.status !== 'confirmed') {
       return { error: 'Order must be confirmed before pricing' }
     }
 
     // Update order items with pricing
     const updatePromises = parsed.data.items.map(item =>
-      supabase
-        .from('order_items')
+      (supabase
+        .from('order_items') as any)
         .update({
           cost_price: item.cost_price,
           selling_price: item.selling_price
@@ -445,7 +434,7 @@ export async function setOrderPricing(formData: FormData) {
     const hasErrors = results.some((result: { error?: unknown }) => result?.error)
 
     if (hasErrors) {
-      console.error('Failed to update some order items:', results)
+      logger.error('Failed to update some order items:', results)
       return { error: 'Failed to update order pricing' }
     }
 
@@ -456,19 +445,19 @@ export async function setOrderPricing(formData: FormData) {
     )
 
     // Update order status and total
-    const { data: updatedOrder, error: orderUpdateError } = await supabase
-      .from('orders')
+    const { data: updatedOrder, error: orderUpdateError } = await (supabase
+      .from('orders') as any)
       .update({
-        status: 'priced' as const,
+        status: 'priced',
         total_amount: totalAmount,
         updated_at: new Date().toISOString()
-      } as OrderUpdate)
+      })
       .eq('id', parsed.data.orderId)
       .select()
       .single()
 
     if (orderUpdateError) {
-      console.error('Failed to update order:', orderUpdateError)
+      logger.error('Failed to update order:', orderUpdateError)
       return { error: 'Failed to finalize order pricing' }
     }
 
@@ -481,7 +470,7 @@ export async function setOrderPricing(formData: FormData) {
       message: 'Order pricing set successfully'
     }
   } catch (error) {
-    console.error('Unexpected error in setOrderPricing:', error)
+    logger.error('Unexpected error in setOrderPricing:', error)
     return { error: 'An unexpected error occurred' }
   }
 }
@@ -491,8 +480,7 @@ export async function setOrderPricing(formData: FormData) {
  */
 export async function cancelOrder(formData: FormData) {
   try {
-    const supabase = createServerActionClient()
-
+    const supabase = await createServerClient()
     // Verify authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
@@ -500,8 +488,8 @@ export async function cancelOrder(formData: FormData) {
     }
 
     // Get user role
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+    const { data: profile, error: profileError } = await (supabase
+      .from('profiles') as any)
       .select('role')
       .eq('id', user.id)
       .single()
@@ -525,8 +513,8 @@ export async function cancelOrder(formData: FormData) {
     }
 
     // Verify order exists and check permissions
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
+    const { data: order, error: orderError } = await (supabase
+      .from('orders') as any)
       .select('restaurant_id, status')
       .eq('id', parsed.data.orderId)
       .single()
@@ -535,32 +523,30 @@ export async function cancelOrder(formData: FormData) {
       return { error: 'Order not found' }
     }
 
-    const userProfile = profile as Database['public']['Tables']['profiles']['Row']
-
     // Permission checks
-    const canCancel = userProfile.role === 'admin' ||
-                       (userProfile.role === 'restaurant' &&
-                        order!.restaurant_id === user.id &&
-                        order!.status === 'pending')
+    const canCancel = profile.role === 'admin' ||
+                     (profile.role === 'restaurant' &&
+                      order.restaurant_id === user.id &&
+                      order.status === 'pending')
 
     if (!canCancel) {
       return { error: 'Unauthorized: Cannot cancel this order' }
     }
 
     // Update order status to cancelled
-    const { data: updatedOrder, error: updateError } = await supabase
-      .from('orders')
+    const { data: updatedOrder, error: updateError } = await (supabase
+      .from('orders') as any)
       .update({
-        status: 'cancelled' as const,
+        status: 'cancelled',
         notes: `CANCELLED: ${parsed.data.reason}`,
         updated_at: new Date().toISOString()
-      } as OrderUpdate)
+      })
       .eq('id', parsed.data.orderId)
       .select()
       .single()
 
     if (updateError) {
-      console.error('Failed to cancel order:', updateError)
+      logger.error('Failed to cancel order:', updateError)
       return { error: 'Failed to cancel order' }
     }
 
@@ -574,7 +560,7 @@ export async function cancelOrder(formData: FormData) {
       message: 'Order cancelled successfully'
     }
   } catch (error) {
-    console.error('Unexpected error in cancelOrder:', error)
+    logger.error('Unexpected error in cancelOrder:', error)
     return { error: 'An unexpected error occurred' }
   }
 }

@@ -1,7 +1,8 @@
 'use client'
+import { logger } from '@/lib/logger'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState, useEffect, useCallback } from 'react'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -10,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Truck,
   Search,
-  Filter,
   MapPin,
   Clock,
   Phone,
@@ -18,7 +18,6 @@ import {
   AlertCircle,
   Package,
   Navigation,
-  Camera,
   MessageSquare
 } from 'lucide-react'
 import { DELIVERY_STATUSES, DriverDelivery } from '@/types/driver'
@@ -219,7 +218,7 @@ export default function DriverDeliveriesPage() {
   const [activeTab, setActiveTab] = useState('active')
 
   // Mock data - replace with actual API calls
-  const loadDeliveries = async () => {
+  const loadDeliveries = useCallback(async () => {
     const mockDeliveries: DriverDelivery[] = [
       {
         id: '1',
@@ -279,14 +278,17 @@ export default function DriverDeliveriesPage() {
     ]
 
     setDeliveries(mockDeliveries)
-  }
-
-  useEffect(() => {
-    loadDeliveries()
   }, [])
 
+  useEffect(() => {
+    const initializeDeliveries = async () => {
+      await loadDeliveries()
+    }
+    initializeDeliveries()
+  }, [loadDeliveries])
+
   // Filter deliveries based on search and status
-  const updateFilteredDeliveries = () => {
+  const updateFilteredDeliveries = useCallback(() => {
     let filtered = deliveries
 
     if (searchTerm) {
@@ -302,14 +304,17 @@ export default function DriverDeliveriesPage() {
     }
 
     setFilteredDeliveries(filtered)
-  }
-
-  useEffect(() => {
-    updateFilteredDeliveries()
   }, [deliveries, searchTerm, statusFilter])
 
+  useEffect(() => {
+    const updateFilters = async () => {
+      await updateFilteredDeliveries()
+    }
+    updateFilters()
+  }, [deliveries, searchTerm, statusFilter, updateFilteredDeliveries])
+
   const handleDeliveryAction = (action: string, deliveryId: string) => {
-    console.log(`Action: ${action} for delivery: ${deliveryId}`)
+    logger.info(`Action: ${action} for delivery: ${deliveryId}`)
     // Implement action handlers
   }
 

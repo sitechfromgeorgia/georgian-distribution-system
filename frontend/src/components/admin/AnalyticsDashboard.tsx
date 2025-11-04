@@ -1,5 +1,6 @@
 'use client'
 
+ 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -39,7 +40,8 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
 
 export function AnalyticsDashboard({ dateRange }: AnalyticsDashboardProps) {
   const [loading, setLoading] = useState(true)
-  const [analyticsData, setAnalyticsData] = useState({
+   
+  const [analyticsData, setAnalyticsData] = useState<any>({
     revenue: [],
     orders: [],
     customers: [],
@@ -49,10 +51,15 @@ export function AnalyticsDashboard({ dateRange }: AnalyticsDashboardProps) {
     revenueByCategory: []
   })
 
+   
+  const setAnalyticsDataWithMock = (data: any) => {
+    setAnalyticsData(data)
+  }
+
   useEffect(() => {
     // Simulate data loading
     const timer = setTimeout(() => {
-      setAnalyticsData({
+      const mockData = {
         revenue: [
           { month: 'იან', revenue: 45000, orders: 120 },
           { month: 'თებ', revenue: 52000, orders: 145 },
@@ -104,7 +111,8 @@ export function AnalyticsDashboard({ dateRange }: AnalyticsDashboardProps) {
           { category: 'რძის პროდუქტები', revenue: 19500, percentage: 23.5 },
           { category: 'სხვა', revenue: 13600, percentage: 16.4 }
         ]
-      })
+      }
+      setAnalyticsDataWithMock(mockData)
       setLoading(false)
     }, 1000)
 
@@ -180,7 +188,8 @@ export function AnalyticsDashboard({ dateRange }: AnalyticsDashboardProps) {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {analyticsData.orderStatus.map((entry, index) => (
+                    { }
+                    {analyticsData.orderStatus.map((entry: any, index: any) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -198,7 +207,8 @@ export function AnalyticsDashboard({ dateRange }: AnalyticsDashboardProps) {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {analyticsData.topProducts.map((product, index) => (
+                { }
+                {analyticsData.topProducts.map((product: any, index: any) => (
                   <div key={index} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Badge variant="outline">{index + 1}</Badge>
@@ -319,7 +329,8 @@ export function AnalyticsDashboard({ dateRange }: AnalyticsDashboardProps) {
                     fill="#8884d8"
                     dataKey="revenue"
                   >
-                    {analyticsData.revenueByCategory.map((entry, index) => (
+                    { }
+                    {analyticsData.revenueByCategory.map((entry: any, index: any) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>

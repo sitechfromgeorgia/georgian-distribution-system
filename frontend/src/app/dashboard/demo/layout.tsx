@@ -1,3 +1,4 @@
+"use client";
 import { ReactNode } from 'react';
 import { DemoBanner } from '@/components/demo/DemoBanner';
 import { RoleSwitcher } from '@/components/demo/RoleSwitcher';
@@ -11,7 +12,8 @@ interface DemoLayoutProps {
 }
 
 export default function DemoLayout({ children }: DemoLayoutProps) {
-  const { tourActive, tourStep, nextTourStep, previousTourStep, skipTour } = useDemo();
+  const { tourActive, tourStep, nextTourStep, previousTourStep, skipTour, getCurrentStepData } = useDemo();
+  const currentStepData = getCurrentStepData();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -29,9 +31,9 @@ export default function DemoLayout({ children }: DemoLayoutProps) {
       <DemoLimitations />
       <ConversionPrompt />
 
-      {tourActive && tourStep && (
+      {tourActive && currentStepData && (
         <GuidedTour
-          step={tourStep}
+          step={currentStepData}
           onNext={nextTourStep}
           onPrevious={previousTourStep}
           onSkip={skipTour}

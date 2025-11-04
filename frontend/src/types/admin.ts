@@ -144,3 +144,123 @@ export type AdminAction<T = unknown> = {
     description: string
   }
 }
+
+// Service Role Admin Types
+export type AdminEnvironmentInfo = {
+  url: string
+  hasServiceRoleKey: boolean
+  isLocal: boolean
+  clientInfo: string
+}
+
+export type AdminConnectionInfo = {
+  clientType: 'server' | 'browser'
+  hasAdminClient: boolean
+  adminConnection: boolean
+  adminEnvironment: AdminEnvironmentInfo | null
+  environment: string
+  timestamp: string
+}
+
+export type AdminSystemHealth = {
+  database: boolean
+  ordersAccessible: boolean
+  productsAccessible: boolean
+  profilesAccessible?: boolean
+  hasAdminClient?: boolean
+  adminClientAvailable?: boolean
+  timestamp?: string
+}
+
+export type BulkPriceUpdate = {
+  id: string
+  price: number
+}
+
+export type AdminOrder = Database['public']['Tables']['orders']['Row'] & {
+  restaurant?: {
+    full_name: string | null
+    restaurant_name: string | null
+  }
+  driver?: {
+    full_name: string | null
+    phone?: string | null
+  }
+  order_items?: Array<{
+    id: string
+    product_id: string
+    quantity: number
+    price: number
+    product?: {
+      name: string
+      unit: string
+      category?: string
+    }
+  }>
+}
+
+export type AdminAnalytics = {
+  totalOrders: number
+  totalRevenue: number
+  ordersByStatus: Record<string, number>
+  revenueByDay: Record<string, number>
+  topProducts: Array<{
+    name: string
+    revenue: number
+    rank: number
+  }>
+  averageOrderValue: number
+}
+
+export type AuditLogEntry = {
+  id: string
+  action: string
+  resource: string
+  resource_id?: string
+  performed_by: string
+  details: Record<string, any>
+  created_at: string
+}
+
+export type AdminOperationType =
+  | 'user_create'
+  | 'user_update'
+  | 'user_delete'
+  | 'user_status_change'
+  | 'product_create'
+  | 'product_update'
+  | 'product_delete'
+  | 'product_bulk_update'
+  | 'order_status_change'
+  | 'order_assignment'
+  | 'order_bulk_update'
+  | 'system_maintenance'
+
+export type AdminValidationError = {
+  field: string
+  code: string
+  message: string
+  severity: 'error' | 'warning'
+}
+
+export type AdminValidationResult = {
+  isValid: boolean
+  errors: AdminValidationError[]
+  warnings: AdminValidationError[]
+}
+
+export type AdminBatchOperation = {
+  id: string
+  type: AdminOperationType
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  total_items: number
+  processed_items: number
+  success_count: number
+  error_count: number
+  errors?: Array<{
+    item_id: string
+    error: string
+  }>
+  created_at: string
+  completed_at?: string
+}

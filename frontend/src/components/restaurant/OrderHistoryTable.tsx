@@ -1,17 +1,16 @@
 'use client'
+import { logger } from '@/lib/logger'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import {
   Search,
   Download,
   Eye,
-  Calendar,
   Filter
 } from 'lucide-react'
 import { RestaurantOrder, OrderFilters } from '@/types/restaurant'
@@ -35,11 +34,7 @@ export function OrderHistoryTable({ onViewOrder }: OrderHistoryTableProps) {
 
   const itemsPerPage = 10
 
-  useEffect(() => {
-    loadOrders()
-  }, [filters, currentPage])
-
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     try {
       setLoading(true)
       const data = await RestaurantUtils.getOrders({
@@ -55,7 +50,7 @@ export function OrderHistoryTable({ onViewOrder }: OrderHistoryTableProps) {
       setOrders(paginatedData)
       setTotalPages(Math.ceil(data.length / itemsPerPage))
     } catch (error) {
-      console.error('Failed to load orders:', error)
+      logger.error('Failed to load orders:', error)
       toast({
         title: 'შეცდომა',
         description: 'შეკვეთების ჩატვირთვა ვერ მოხერხდა',
@@ -64,7 +59,11 @@ export function OrderHistoryTable({ onViewOrder }: OrderHistoryTableProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters, currentPage, searchQuery, toast])
+
+  useEffect(() => {
+    loadOrders()
+  }, [loadOrders])
 
   const handleSearch = () => {
     setCurrentPage(1)
@@ -94,8 +93,12 @@ export function OrderHistoryTable({ onViewOrder }: OrderHistoryTableProps) {
       'განახლების დრო': RestaurantUtils.formatDate(order.updated_at)
     }))
 
+    if (csvData.length === 0) {
+      return;
+    }
+
     const csvString = [
-      Object.keys(csvData[0]).join(','),
+      Object.keys(csvData[0]!).join(','),
       ...csvData.map(row => Object.values(row).join(','))
     ].join('\n')
 
@@ -119,13 +122,15 @@ export function OrderHistoryTable({ onViewOrder }: OrderHistoryTableProps) {
         return 'secondary'
       case 'confirmed':
         return 'default'
-      case 'preparing':
+      case 'priced':
         return 'outline'
-      case 'ready':
+      case 'assigned':
         return 'secondary'
       case 'out_for_delivery':
         return 'default'
       case 'delivered':
+        return 'default'
+      case 'completed':
         return 'default'
       case 'cancelled':
         return 'destructive'
@@ -167,14 +172,14 @@ export function OrderHistoryTable({ onViewOrder }: OrderHistoryTableProps) {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {Object.entries(RestaurantUtils.ORDER_STATUSES).map(([status, config]) => (
+            {['pending', 'confirmed', 'priced', 'assigned', 'out_for_delivery', 'delivered', 'completed', 'cancelled'].map((status) => (
               <Button
                 key={status}
                 variant={filters.status?.includes(status) ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => handleStatusFilter(status)}
               >
-                {config.label}
+                {status}
               </Button>
             ))}
           </div>
@@ -221,11 +226,11 @@ export function OrderHistoryTable({ onViewOrder }: OrderHistoryTableProps) {
                       </TableCell>
                       <TableCell>
                         <Badge variant={getStatusBadgeVariant(order.status)}>
-                          {RestaurantUtils.ORDER_STATUSES[order.status]?.label || order.status}
+                          {order.status}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {RestaurantUtils.formatCurrency(order.total_amount)}
+                        {RestaurantUtils.formatCurrency(order.total_amount ?? 0)}
                       </TableCell>
                       <TableCell className="max-w-xs truncate">
                         {order.delivery_address}

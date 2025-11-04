@@ -1,4 +1,5 @@
 'use client'
+import { logger } from '@/lib/logger'
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -61,7 +62,7 @@ export function Cart({
 
   const handleSubmitOrder = () => {
     // This will be handled by the parent component
-    console.log('Order data:', {
+    logger.info('Order data:', {
       items,
       deliveryAddress,
       deliveryTime,

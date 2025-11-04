@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ka } from 'date-fns/locale'
 import { DateRange } from 'react-day-picker'
+import { Database } from '@/types/database'
 
 // TypeScript interfaces
 interface OrderItem {
@@ -39,21 +40,18 @@ interface OrderPricingItem {
   notes?: string
 }
 
-interface Order {
-  id: string
-  customer_name: string
-  customer_phone: string
-  customer_email: string
-  delivery_address: string
-  delivery_time: string
-  delivery_date: string
+// Use the database Order type extended with additional fields for display
+type Order = Database['public']['Tables']['orders']['Row'] & {
+  restaurants?: { name: string } | null
+  drivers?: { full_name: string } | null
+  restaurant_name?: string
+  driver_name?: string
+  // Additional display fields
+  customer_name?: string
+  customer_phone?: string
+  customer_email?: string
+  delivery_date?: string
   items?: unknown[]
-  total_amount: number
-  subtotal?: number
-  delivery_fee?: number
-  tax_amount?: number
-  discount_amount?: number
-  pricing_notes?: string
   status_history?: OrderStatus[]
 }
 
@@ -358,7 +356,7 @@ export default function OrdersPage() {
 
       {/* Pricing Modal */}
       <OrderPricingModal
-        order={// eslint-disable-next-line @typescript-eslint/no-explicit-any
+        order={ 
         selectedOrder as unknown as any}
         open={showPricingModal}
         onClose={handlePricingModalClose}

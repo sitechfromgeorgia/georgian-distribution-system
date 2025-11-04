@@ -1,85 +1,23 @@
-import { useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuthStore, startSessionMonitoring } from '@/store/authStore'
+import { createBrowserClient } from '@/lib/supabase'
+import { useAuthStore } from '@/store/authStore'
+
+/**
+ * Auth Hook
+ *
+ * Simplified hook that only reads from the auth store and provides auth methods.
+ * Initialization is handled by auth-init.ts singleton service.
+ *
+ * This prevents the infinite loop issue by removing initialization logic from React lifecycle.
+ */
+
+// Create Supabase client instance
+const supabase = createBrowserClient()
 
 export function useAuth() {
-  const { user, profile, loading, setUser, setProfile, setLoading } = useAuthStore()
-
-  useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      setLoading(true)
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        setUser(session?.user || null)
-
-        if (session?.user) {
-          // Fetch user profile
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-
-          setProfile(profile)
-
-          // Initialize session info
-          const deviceId = localStorage.getItem('deviceId') || crypto.randomUUID()
-          localStorage.setItem('deviceId', deviceId)
-
-          useAuthStore.getState().setSessionInfo({
-            lastActivity: Date.now(),
-            expiresAt: new Date(session.expires_at!).getTime(),
-            deviceId
-          })
-
-          // Start session monitoring
-          startSessionMonitoring()
-        }
-      } catch (error) {
-        console.error('Error getting initial session:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    getInitialSession()
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user || null)
-
-        if (session?.user) {
-          // Fetch user profile
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-
-          setProfile(profile)
-
-          // Update session info
-          const deviceId = localStorage.getItem('deviceId') || crypto.randomUUID()
-          localStorage.setItem('deviceId', deviceId)
-
-          useAuthStore.getState().setSessionInfo({
-            lastActivity: Date.now(),
-            expiresAt: new Date(session.expires_at!).getTime(),
-            deviceId
-          })
-        } else {
-          setProfile(null)
-          useAuthStore.getState().clearSession()
-        }
-
-        setLoading(false)
-      }
-    )
-
-    return () => subscription?.unsubscribe()
-  }, [setUser, setProfile, setLoading])
+  // Simply read from store - no initialization logic here
+  const user = useAuthStore((state) => state.user)
+  const profile = useAuthStore((state) => state.profile)
+  const loading = useAuthStore((state) => state.loading)
 
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -154,9 +92,20 @@ export function useAuth() {
     useAuthStore.getState().signOut()
   }
 
-  const isAdmin = () => profile?.role === 'admin'
-  const isRestaurant = () => profile?.role === 'restaurant'
-  const isDriver = () => profile?.role === 'driver'
+  const isAdmin = () => {
+    const { profile } = useAuthStore.getState()
+    return profile?.role === 'admin'
+  }
+
+  const isRestaurant = () => {
+    const { profile } = useAuthStore.getState()
+    return profile?.role === 'restaurant'
+  }
+
+  const isDriver = () => {
+    const { profile } = useAuthStore.getState()
+    return profile?.role === 'driver'
+  }
 
   return {
     user,

@@ -4,7 +4,23 @@ import { Button } from '@/components/ui/button'
 import { Clock, CheckCircle, Package, Truck, AlertCircle } from 'lucide-react'
 
 interface OrderCardProps {
-  order: any
+  order: {
+    id: string
+    status: string
+    created_at: string
+    delivery_address: string
+    delivery_notes?: string
+    total_price?: number
+    total_amount?: number
+    restaurant?: {
+      name: string
+      email: string
+    }
+    driver?: {
+      full_name: string
+      phone: string
+    }
+  }
   onViewDetails?: () => void
   onEdit?: () => void
   onDelete?: () => void
@@ -85,7 +101,7 @@ export function OrderCard({ order, onViewDetails, onEdit, onDelete }: OrderCardP
           <div className="flex justify-between items-center">
             <div>
               <p className="text-sm text-gray-600">Total</p>
-              <p className="text-xl font-bold">₾{order.total_price.toFixed(2)}</p>
+              <p className="text-xl font-bold">₾{(order.total_price || order.total_amount || 0).toFixed(2)}</p>
             </div>
             
             <div className="flex gap-2">

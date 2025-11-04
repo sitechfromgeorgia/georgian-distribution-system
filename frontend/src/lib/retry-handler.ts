@@ -1,3 +1,5 @@
+import { logger } from '@/lib/logger'
+
 /**
  * Retry handler with exponential backoff for resilient API calls
  */
@@ -42,7 +44,7 @@ export async function retryWithBackoff<T>(
         config.maxDelay
       )
       
-      console.log(`🔄 Retry attempt ${attempt + 1}/${config.maxRetries} in ${delay}ms`)
+      logger.info(`🔄 Retry attempt ${attempt + 1}/${config.maxRetries} in ${delay}ms`)
       await new Promise(resolve => setTimeout(resolve, delay))
     }
   }

@@ -27,7 +27,7 @@ export function ConversionPrompt() {
 
   const handleSignup = async () => {
     try {
-      await attemptConversion('signup');
+      await attemptConversion();
       toast({
         title: "Redirecting to signup",
         description: "Taking you to our registration page...",
@@ -55,8 +55,8 @@ export function ConversionPrompt() {
 
     setIsSubmitting(true);
     try {
-      await attemptConversion('contact');
-      await submitFeedback(5, `Contact request: ${contactForm.message}`, contactForm.email);
+      await attemptConversion();
+      await submitFeedback();
 
       toast({
         title: "Thank you!",
