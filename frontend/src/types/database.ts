@@ -445,6 +445,292 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_locations: {
+        Row: {
+          id: string
+          delivery_id: string
+          driver_id: string
+          latitude: number
+          longitude: number
+          accuracy: number | null
+          altitude: number | null
+          heading: number | null
+          speed: number | null
+          address: string | null
+          is_pickup: boolean
+          is_delivery: boolean
+          recorded_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          delivery_id: string
+          driver_id: string
+          latitude: number
+          longitude: number
+          accuracy?: number | null
+          altitude?: number | null
+          heading?: number | null
+          speed?: number | null
+          address?: string | null
+          is_pickup?: boolean
+          is_delivery?: boolean
+          recorded_at?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          delivery_id?: string
+          driver_id?: string
+          latitude?: number
+          longitude?: number
+          accuracy?: number | null
+          altitude?: number | null
+          heading?: number | null
+          speed?: number | null
+          address?: string | null
+          is_pickup?: boolean
+          is_delivery?: boolean
+          recorded_at?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_locations_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_locations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          id: string
+          order_id: string
+          sender_id: string
+          message: string
+          message_type: string
+          attachment_url: string | null
+          metadata: Json
+          is_read: boolean
+          read_at: string | null
+          delivered: boolean
+          delivered_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          order_id: string
+          sender_id: string
+          message: string
+          message_type?: string
+          attachment_url?: string | null
+          metadata?: Json
+          is_read?: boolean
+          read_at?: string | null
+          delivered?: boolean
+          delivered_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          order_id?: string
+          sender_id?: string
+          message?: string
+          message_type?: string
+          attachment_url?: string | null
+          metadata?: Json
+          is_read?: boolean
+          read_at?: string | null
+          delivered?: boolean
+          delivered_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_presence: {
+        Row: {
+          id: string
+          user_id: string
+          status: string
+          last_seen_at: string
+          device_info: Json
+          current_page: string | null
+          current_latitude: number | null
+          current_longitude: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          status?: string
+          last_seen_at?: string
+          device_info?: Json
+          current_page?: string | null
+          current_latitude?: number | null
+          current_longitude?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          status?: string
+          last_seen_at?: string
+          device_info?: Json
+          current_page?: string | null
+          current_latitude?: number | null
+          current_longitude?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_presence_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_queue: {
+        Row: {
+          id: string
+          user_id: string
+          message_type: string
+          payload: Json
+          delivered: boolean
+          delivered_at: string | null
+          retry_count: number
+          max_retries: number
+          priority: number
+          scheduled_for: string
+          expires_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          message_type: string
+          payload: Json
+          delivered?: boolean
+          delivered_at?: string | null
+          retry_count?: number
+          max_retries?: number
+          priority?: number
+          scheduled_for?: string
+          expires_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          message_type?: string
+          payload?: Json
+          delivered?: boolean
+          delivered_at?: string | null
+          retry_count?: number
+          max_retries?: number
+          priority?: number
+          scheduled_for?: string
+          expires_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_queue_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_history: {
+        Row: {
+          id: string
+          product_id: string
+          previous_quantity: number
+          new_quantity: number
+          change_quantity: number
+          change_type: string
+          reference_id: string | null
+          notes: string | null
+          changed_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          previous_quantity: number
+          new_quantity: number
+          change_quantity: number
+          change_type: string
+          reference_id?: string | null
+          notes?: string | null
+          changed_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          previous_quantity?: number
+          new_quantity?: number
+          change_quantity?: number
+          change_type?: string
+          reference_id?: string | null
+          notes?: string | null
+          changed_by?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -454,6 +740,8 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_driver: { Args: never; Returns: boolean }
       is_restaurant: { Args: never; Returns: boolean }
+      cleanup_old_message_queue: { Args: never; Returns: void }
+      get_unread_message_count: { Args: { p_user_id: string; p_order_id: string }; Returns: number }
     }
     Enums: {
       notification_type: "info" | "success" | "warning" | "error"
@@ -591,6 +879,11 @@ export type DemoSession = Tables<"demo_sessions">
 export type OrderStatusHistory = Tables<"order_status_history">
 export type OrderAuditLog = Tables<"order_audit_logs">
 export type Delivery = Tables<"deliveries">
+export type DeliveryLocation = Tables<"delivery_locations">
+export type ChatMessage = Tables<"chat_messages">
+export type UserPresence = Tables<"user_presence">
+export type MessageQueue = Tables<"message_queue">
+export type InventoryHistory = Tables<"inventory_history">
 
 // Insert types
 export type ProfileInsert = Inserts<"profiles">
@@ -602,6 +895,11 @@ export type DemoSessionInsert = Inserts<"demo_sessions">
 export type OrderStatusHistoryInsert = Inserts<"order_status_history">
 export type OrderAuditLogInsert = Inserts<"order_audit_logs">
 export type DeliveryInsert = Inserts<"deliveries">
+export type DeliveryLocationInsert = Inserts<"delivery_locations">
+export type ChatMessageInsert = Inserts<"chat_messages">
+export type UserPresenceInsert = Inserts<"user_presence">
+export type MessageQueueInsert = Inserts<"message_queue">
+export type InventoryHistoryInsert = Inserts<"inventory_history">
 
 // Update types
 export type ProfileUpdate = Updates<"profiles">
@@ -613,6 +911,11 @@ export type DemoSessionUpdate = Updates<"demo_sessions">
 export type OrderStatusHistoryUpdate = Updates<"order_status_history">
 export type OrderAuditLogUpdate = Updates<"order_audit_logs">
 export type DeliveryUpdate = Updates<"deliveries">
+export type DeliveryLocationUpdate = Updates<"delivery_locations">
+export type ChatMessageUpdate = Updates<"chat_messages">
+export type UserPresenceUpdate = Updates<"user_presence">
+export type MessageQueueUpdate = Updates<"message_queue">
+export type InventoryHistoryUpdate = Updates<"inventory_history">
 
 // Extended types for complex queries
 export interface OrderWithRelations extends Order {
