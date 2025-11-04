@@ -1,0 +1,651 @@
+# Quickstart: Restaurant Order Management
+
+**Date**: 2025-11-01  
+**Feature**: Restaurant Order Management  
+**Development Environment**: Next.js + Supabase (Development: Official Platform, Production: Self-hosted VPS)
+
+## Prerequisites
+
+- Node.js 18+ with npm
+- Git
+- Supabase CLI (for development)
+- Access to Georgian Distribution System project
+
+### System Requirements
+
+- **Development**: Official Supabase project (connected via MCP)
+- **Production**: VPS Supabase at `data.greenland77.ge`
+- **Database**: PostgreSQL 15+ with RLS enabled
+- **Frontend**: Next.js 15+ with React 19+
+- **Authentication**: Supabase Auth with JWT tokens
+
+## Environment Setup
+
+### 1. Clone and Install
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd Distribution-Managment
+
+# Install frontend dependencies
+cd frontend
+npm install
+
+# Setup environment variables
+cp .env.example .env.local
+```
+
+### 2. Configure Environment Variables
+
+**frontend/.env.local**
+```bash
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-from-dashboard
+
+# Development-specific settings
+NEXT_PUBLIC_APP_ENV=development
+NEXT_PUBLIC_API_BASE_URL=https://your-project-ref.supabase.co/rest/v1
+
+# Optional: Enable debug logging
+NEXT_PUBLIC_DEBUG=true
+```
+
+**Verify MCP Integration**
+```bash
+# Test Supabase connection
+npx supabase status
+
+# Check database connectivity
+npx supabase db ping
+
+# Verify auth setup
+npx supabase auth status
+```
+
+### 3. Database Setup
+
+#### Apply Migrations
+
+```bash
+# Navigate to project root
+cd ../
+
+# Apply new table migrations (run these first)
+npx supabase db reset
+
+# Or apply specific migrations
+npx supabase migration up --name "add_order_comments"
+npx supabase migration up --name "add_cart_snapshots"
+```
+
+#### Generate TypeScript Types
+
+```bash
+# Generate types after schema changes
+npx supabase gen types typescript --local > frontend/src/types/database.ts
+
+# Or generate for remote project
+npx supabase gen types typescript --project-id your-project-ref > frontend/src/types/database.ts
+```
+
+## Development Workflow
+
+### 1. Start Development Environment
+
+**Terminal 1: Database and Backend**
+```bash
+cd frontend
+
+# Start Supabase locally (if using local development)
+supabase start
+
+# Or connect to official project
+supabase link --project-ref your-project-ref
+```
+
+**Terminal 2: Frontend Application**
+```bash
+cd frontend
+npm run dev
+```
+
+**Access URLs:**
+- Frontend: http://localhost:3000
+- Supabase Studio: http://localhost:54321 (if local)
+- Database API: http://localhost:54321/rest/v1 (if local)
+
+### 2. Test Database Connectivity
+
+```bash
+# Test product catalog access
+curl -H "apikey: your-anon-key" \
+     -H "Authorization: Bearer your-anon-key" \
+     "https://your-project-ref.supabase.co/rest/v1/products?select=*&is_active=eq.true"
+
+# Test authentication
+curl -X POST 'https://your-project-ref.supabase.co/auth/v1/token?grant_type=password' \
+     -H "apikey: your-anon-key" \
+     -H "Content-Type: application/json" \
+     -d '{"email": "test@example.com", "password": "password"}'
+```
+
+### 3. Frontend Development
+
+**Start the development server:**
+```bash
+cd frontend
+npm run dev
+```
+
+**Test key pages:**
+- http://localhost:3000 - Landing page
+- http://localhost:3000/login - Authentication
+- http://localhost:3000/dashboard/restaurant - Restaurant dashboard (requires authentication)
+- http://localhost:3000/dashboard/restaurant/orders - Order placement
+
+## Feature Implementation Guide
+
+### Phase 1: Foundation Setup
+
+#### Database Migration
+
+```sql
+-- Create order_comments table
+CREATE TABLE order_comments (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  order_id uuid REFERENCES orders(id) ON DELETE CASCADE,
+  author_id uuid REFERENCES profiles(id) ON DELETE CASCADE,
+  comment_text text NOT NULL CHECK (length(comment_text) <= 1000),
+  comment_type text NOT NULL DEFAULT 'general' CHECK (comment_type IN ('general', 'issue', 'praise', 'question')),
+  is_internal boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Create cart_snapshots table  
+CREATE TABLE cart_snapshots (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  restaurant_id uuid REFERENCES profiles(id) ON DELETE CASCADE,
+  product_id uuid REFERENCES products(id) ON DELETE CASCADE,
+  quantity integer NOT NULL CHECK (quantity > 0),
+  special_instructions text CHECK (length(special_instructions) <= 200),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE(restaurant_id, product_id)
+);
+```
+
+#### RLS Policies
+
+```sql
+-- Order comments policies
+CREATE POLICY "Restaurant comments" ON order_comments FOR ALL USING (
+  get_my_claim('role')::text = 'restaurant' AND
+  order_id IN (
+    SELECT id FROM orders WHERE restaurant_id = auth.uid()
+  ) AND
+  author_id = auth.uid()
+);
+
+CREATE POLICY "Admin comments" ON order_comments FOR ALL USING (
+  get_my_claim('role')::text = 'admin'
+);
+
+-- Cart snapshots policies
+CREATE POLICY "Restaurant cart management" ON cart_snapshots FOR ALL USING (
+  get_my_claim('role')::text = 'restaurant' AND
+  restaurant_id = auth.uid()
+);
+```
+
+### Phase 2: Service Layer Setup
+
+#### Restaurant Services
+
+**frontend/src/lib/services/restaurant/product.service.ts**
+```typescript
+import { supabase } from '../supabase/client'
+import { Product } from '../../types/database'
+
+export class ProductService {
+  async getActiveProducts(category?: string) {
+    let query = supabase
+      .from('products')
+      .select('*')
+      .eq('is_active', true)
+    
+    if (category) {
+      query = query.eq('category', category)
+    }
+    
+    return query.order('name')
+  }
+
+  async searchProducts(searchTerm: string, category?: string) {
+    let query = supabase
+      .from('products')
+      .select('*')
+      .eq('is_active', true)
+      .ilike('name', `%${searchTerm}%`)
+    
+    if (category) {
+      query = query.eq('category', category)
+    }
+    
+    return query.order('name')
+  }
+}
+```
+
+#### Cart Management
+
+**frontend/src/lib/store/cart.store.ts**
+```typescript
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+
+interface CartItem {
+  product_id: string
+  product_name: string
+  product_unit: string
+  quantity: number
+  special_instructions?: string
+}
+
+interface CartStore {
+  items: CartItem[]
+  addItem: (item: CartItem) => void
+  removeItem: (productId: string) => void
+  updateQuantity: (productId: string, quantity: number) => void
+  clearCart: () => void
+  getTotalItems: () => number
+}
+
+export const useCartStore = create<CartStore>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      
+      addItem: (item) => set((state) => {
+        const existingItem = state.items.find(i => i.product_id === item.product_id)
+        if (existingItem) {
+          return {
+            items: state.items.map(i =>
+              i.product_id === item.product_id
+                ? { ...i, quantity: i.quantity + item.quantity }
+                : i
+            )
+          }
+        }
+        return { items: [...state.items, item] }
+      }),
+      
+      removeItem: (productId) => set((state) => ({
+        items: state.items.filter(i => i.product_id !== productId)
+      })),
+      
+      updateQuantity: (productId, quantity) => set((state) => ({
+        items: state.items.map(i =>
+          i.product_id === productId ? { ...i, quantity } : i
+        )
+      })),
+      
+      clearCart: () => set({ items: [] }),
+      
+      getTotalItems: () => get().items.reduce((total, item) => total + item.quantity, 0)
+    }),
+    {
+      name: 'restaurant-cart'
+    }
+  )
+)
+```
+
+### Phase 3: Component Development
+
+#### Product Grid Component
+
+**frontend/src/components/restaurant/ProductGrid.tsx**
+```typescript
+'use client'
+
+import { useState, useEffect } from 'react'
+import { ProductService } from '../../lib/services/restaurant/product.service'
+import { Product } from '../../types/database'
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
+import { ShoppingCart } from 'lucide-react'
+import { useCartStore } from '../../lib/store/cart.store'
+
+export default function ProductGrid() {
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string>()
+  const { addItem } = useCartStore()
+
+  const productService = new ProductService()
+
+  useEffect(() => {
+    loadProducts()
+  }, [selectedCategory])
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true)
+      const data = await productService.getActiveProducts(selectedCategory)
+      setProducts(data || [])
+    } catch (error) {
+      console.error('Error loading products:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAddToCart = (product: Product) => {
+    addItem({
+      product_id: product.id,
+      product_name: product.name,
+      product_unit: product.unit,
+      quantity: 1
+    })
+  }
+
+  const categories = ['meat', 'vegetables', 'dairy', 'grains', 'beverages', 'condiments', 'spices', 'other']
+
+  if (loading) {
+    return <div>პროდუქტების ჩატვირთვა...</div>
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Search and Filter */}
+      <div className="flex gap-4">
+        <Input
+          placeholder="ძიება პროდუქტზე..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="flex-1"
+        />
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="კატეგორია" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">ყველა კატეგორია</SelectItem>
+            {categories.map(category => (
+              <SelectItem key={category} value={category}>
+                {category}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Product Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {products.map(product => (
+          <Card key={product.id}>
+            <CardHeader>
+              <CardTitle className="text-lg">{product.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">კატეგორია: {product.category}</p>
+                <p className="text-sm text-gray-600">ერთეული: {product.unit}</p>
+                {product.image_url && (
+                  <img 
+                    src={product.image_url} 
+                    alt={product.name}
+                    className="w-full h-32 object-cover rounded"
+                  />
+                )}
+                <Button 
+                  onClick={() => handleAddToCart(product)}
+                  className="w-full"
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  კალათაში დამატება
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
+### Phase 4: API Endpoints
+
+#### Order Creation
+
+**frontend/src/app/api/orders/route.ts**
+```typescript
+import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '../../lib/supabase/server'
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = createServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Get restaurant profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, restaurant_name')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.role !== 'restaurant') {
+      return NextResponse.json({ error: 'Restaurant role required' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { delivery_address, special_instructions, items } = body
+
+    // Create order
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        restaurant_id: user.id,
+        delivery_address,
+        special_instructions,
+        status: 'pending'
+      })
+      .select()
+      .single()
+
+    if (orderError) throw orderError
+
+    // Create order items
+    const orderItems = items.map((item: any) => ({
+      order_id: order.id,
+      product_id: item.product_id,
+      quantity: item.quantity,
+      special_instructions: item.special_instructions
+    }))
+
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems)
+
+    if (itemsError) throw itemsError
+
+    return NextResponse.json({
+      order_id: order.id,
+      status: 'pending',
+      created_at: order.created_at
+    })
+
+  } catch (error) {
+    console.error('Order creation error:', error)
+    return NextResponse.json(
+      { error: 'Failed to create order' }, 
+      { status: 500 }
+    )
+  }
+}
+```
+
+## Testing
+
+### Run Tests
+
+```bash
+# Unit tests
+npm run test
+
+# Integration tests
+npm run test:integration
+
+# E2E tests
+npm run test:e2e
+
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
+```
+
+### Manual Testing Checklist
+
+**Authentication**
+- [ ] Login with restaurant role
+- [ ] Verify role-based route protection
+- [ ] Test logout functionality
+
+**Product Catalog**
+- [ ] Products display correctly with Georgian names
+- [ ] Category filtering works
+- [ ] Search functionality works
+- [ ] Images load properly
+
+**Shopping Cart**
+- [ ] Add products to cart
+- [ ] Update quantities
+- [ ] Remove items
+- [ ] Cart persists across page reloads
+- [ ] Cross-tab synchronization works
+
+**Order Submission**
+- [ ] Create order from cart
+- [ ] Add delivery details
+- [ ] Submit order successfully
+- [ ] Order appears in admin dashboard
+
+**Real-time Features**
+- [ ] Order status updates in real-time
+- [ ] Product catalog changes update live
+- [ ] Cart synchronization works across devices
+
+## Deployment
+
+### Development to Production
+
+1. **Environment Switch**
+   ```bash
+   # Update environment variables
+   NEXT_PUBLIC_SUPABASE_URL=https://data.greenland77.ge
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=production-anon-key
+   ```
+
+2. **Database Migration**
+   ```bash
+   # Apply migrations to production
+   npx supabase db push --linked
+   ```
+
+3. **Type Generation**
+   ```bash
+   # Generate types for production
+   npx supabase gen types typescript --linked > frontend/src/types/database.ts
+   ```
+
+4. **Build and Deploy**
+   ```bash
+   # Build for production
+   npm run build
+   
+   # Deploy to production
+   npm run deploy
+   ```
+
+### Quality Gates
+
+Before deployment, ensure:
+- [ ] `npm run type-check` passes
+- [ ] `npm run lint -- --max-warnings=0` passes  
+- [ ] All tests pass
+- [ ] Chrome DevTools console is clean
+- [ ] Performance budgets met
+- [ ] Georgian localization verified
+
+## Troubleshooting
+
+### Common Issues
+
+**Database Connection**
+```bash
+# Test connection
+npx supabase status
+
+# Reset database if needed
+npx supabase db reset
+```
+
+**Authentication Issues**
+```bash
+# Check auth setup
+npx supabase auth status
+
+# Test login flow
+curl -X POST 'https://your-project-ref.supabase.co/auth/v1/token?grant_type=password'
+```
+
+**Type Errors**
+```bash
+# Regenerate types
+npx supabase gen types typescript --local > frontend/src/types/database.ts
+
+# Check TypeScript compilation
+npm run type-check
+```
+
+**Real-time Issues**
+- Check WebSocket connection in browser dev tools
+- Verify Supabase Realtime is enabled
+- Test channel subscriptions manually
+
+## Support
+
+### Documentation References
+
+- [Georgian Distribution System Memory Bank](../.kilocode/rules/memory-bank/)
+- [Supabase Documentation](../.kilocode/rules/memory-bank/supabasedocs/)
+- [Next.js Best Practices](../.specify/templates/nextjs.instructions.md)
+
+### Development Resources
+
+- **Database**: Supabase Studio
+- **API Testing**: Postman or similar
+- **Real-time Testing**: Supabase Realtime console
+- **Performance**: Chrome DevTools, Lighthouse
+
+---
+
+**Quickstart Status**: ✅ COMPLETE  
+**Environment Ready**: ✅ YES  
+**Development Workflow**: ✅ DOCUMENTED  
+**Testing Guide**: ✅ PROVIDED  
+**Deployment Path**: ✅ CLEAR

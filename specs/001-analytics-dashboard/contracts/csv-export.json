@@ -1,0 +1,268 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Analytics CSV Export API",
+    "version": "1.0.0",
+    "description": "API for exporting filtered order data as CSV for external analysis and reporting"
+  },
+  "servers": [
+    {
+      "url": "/api/analytics",
+      "description": "Analytics API endpoints"
+    }
+  ],
+  "paths": {
+    "/export": {
+      "get": {
+        "summary": "Export current view as CSV",
+        "description": "Generates a CSV file containing all orders matching the specified date range and status filters. Includes order details, timestamps, and financial data. Requires Admin or Operations Manager role.",
+        "operationId": "exportCSV",
+        "security": [
+          {
+            "supabaseAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "description": "Start date for date range filter (ISO 8601 format, UTC+4 Georgia time)",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2025-11-01T00:00:00+04:00"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "description": "End date for date range filter (ISO 8601 format, UTC+4 Georgia time)",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2025-11-07T23:59:59+04:00"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Optional order status filter (comma-separated list). Omit to include all statuses.",
+            "schema": {
+              "type": "string",
+              "example": "delivered,completed"
+            },
+            "explode": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV file download",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string",
+                  "example": "text/csv; charset=utf-8"
+                },
+                "description": "MIME type indicating CSV format with UTF-8 encoding"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string",
+                  "example": "attachment; filename=\"analytics-export-2025-11-01.csv\""
+                },
+                "description": "Suggests filename for download (format: analytics-export-YYYY-MM-DD.csv)"
+              }
+            },
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "description": "CSV-formatted order data with headers and rows",
+                  "example": "Order ID,Restaurant,Driver,Status,Created At,Delivery Time,Duration (min),Total Amount (GEL),Delivery Fee (GEL),Tax Amount (GEL)\n550e8400-e29b-41d4-a716-446655440000,Pizza Palace,John Doe,delivered,2025-11-01 10:30:00,2025-11-01 11:15:00,45,125.50,10.00,15.50\n6fa459ea-ee8a-3ca4-894e-db77e160355e,Burger King,Jane Smith,completed,2025-11-01 14:00:00,2025-11-01 14:40:00,40,85.00,8.00,10.50"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters (e.g., invalid date format, from > to, range > 12 months)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Invalid date range",
+                  "message": "Date range cannot exceed 12 months",
+                  "code": "DATE_RANGE_TOO_LARGE"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required - missing or invalid JWT token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Unauthorized",
+                  "message": "Authentication required",
+                  "code": "UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - user lacks required role (Admin or Operations Manager)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Forbidden",
+                  "message": "Insufficient permissions to export analytics data",
+                  "code": "FORBIDDEN"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error during CSV generation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Internal Server Error",
+                  "message": "An unexpected error occurred while generating CSV export",
+                  "code": "EXPORT_FAILED"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CSVRow": {
+        "type": "object",
+        "description": "Schema for each row in the CSV export (for documentation purposes; actual response is text/csv)",
+        "required": [
+          "order_id",
+          "restaurant",
+          "status",
+          "created_at",
+          "total_amount",
+          "delivery_fee",
+          "tax_amount"
+        ],
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique order identifier",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "restaurant": {
+            "type": "string",
+            "description": "Restaurant name (joined from profiles table)",
+            "example": "Pizza Palace"
+          },
+          "driver": {
+            "type": "string",
+            "nullable": true,
+            "description": "Driver name (joined from profiles table, null if not assigned)",
+            "example": "John Doe"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "confirmed",
+              "priced",
+              "assigned",
+              "out_for_delivery",
+              "delivered",
+              "completed",
+              "cancelled"
+            ],
+            "description": "Current order status",
+            "example": "delivered"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Order creation timestamp (formatted as YYYY-MM-DD HH:MM:SS in UTC+4)",
+            "example": "2025-11-01 10:30:00"
+          },
+          "delivery_time": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Delivery completion timestamp (formatted as YYYY-MM-DD HH:MM:SS in UTC+4, null if not delivered)",
+            "example": "2025-11-01 11:15:00"
+          },
+          "duration_minutes": {
+            "type": "number",
+            "format": "float",
+            "nullable": true,
+            "description": "Calculated delivery duration in minutes (null if delivery_time is missing)",
+            "example": 45
+          },
+          "total_amount": {
+            "type": "string",
+            "description": "Order total formatted as 'XX.XX GEL'",
+            "example": "125.50 GEL"
+          },
+          "delivery_fee": {
+            "type": "string",
+            "description": "Delivery fee formatted as 'XX.XX GEL'",
+            "example": "10.00 GEL"
+          },
+          "tax_amount": {
+            "type": "string",
+            "description": "Tax amount formatted as 'XX.XX GEL'",
+            "example": "15.50 GEL"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error", "message", "code"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Short error category",
+            "example": "Invalid date range"
+          },
+          "message": {
+            "type": "string",
+            "description": "Human-readable error message",
+            "example": "Date range cannot exceed 12 months"
+          },
+          "code": {
+            "type": "string",
+            "description": "Machine-readable error code",
+            "example": "DATE_RANGE_TOO_LARGE"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "supabaseAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Supabase JWT token from authentication. Include in Authorization header as 'Bearer <token>'"
+      }
+    }
+  }
+}

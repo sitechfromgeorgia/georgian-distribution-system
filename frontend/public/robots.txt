@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Block access to admin areas
+Disallow: /dashboard/
+Disallow: /api/
+
+# Allow crawling of public pages
+Allow: /landing
+Allow: /demo
+
+# Sitemap
+Sitemap: https://greenland77.ge/sitemap.xml

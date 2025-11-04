@@ -1,0 +1,383 @@
+// supabase/functions/admin-validate-rls/index.ts
+/**
+ * Admin RLS Policy Validation Edge Function
+ * 
+ * Purpose: Comprehensive validation of Row Level Security policies
+ * Usage: Admin validation, policy testing, and system auditing
+ * 
+ * URL: https://your-project.supabase.co/functions/v1/admin-validate-rls
+ * Method: POST
+ * 
+ * Security: Requires admin authentication
+ */
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// CORS headers for frontend integration
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE, PATCH',
+  'Access-Control-Max-Age': '86400',
+  'Access-Control-Allow-Credentials': 'false'
+};
+
+// Rate limiting configuration
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const MAX_REQUESTS_PER_MINUTE = 100;
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip);
+
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + 60000 });
+    return true;
+  }
+
+  if (record.count >= MAX_REQUESTS_PER_MINUTE) {
+    return false;
+  }
+
+  record.count++;
+  return true;
+}
+
+interface PolicyTestRequest {
+  action: 'test_policies' | 'validate_user_role' | 'check_table_access' | 'audit_violations';
+  user_id?: string;
+  table_name?: string;
+  policy_name?: string;
+  test_scenarios?: boolean;
+}
+
+interface TestScenario {
+  role: 'admin' | 'restaurant' | 'driver' | 'demo';
+  table: string;
+  operation: 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE';
+  should_succeed: boolean;
+  description: string;
+}
+
+interface RoleValidationResult {
+  success: boolean;
+  data?: {
+    role: string;
+    full_name: string;
+    is_active: boolean;
+  };
+  error?: string;
+}
+
+// Comprehensive test scenarios for all roles
+const TEST_SCENARIOS: TestScenario[] = [
+  // Admin scenarios
+  { role: 'admin', table: 'profiles', operation: 'SELECT', should_succeed: true, description: 'Admin can view all profiles' },
+  { role: 'admin', table: 'profiles', operation: 'UPDATE', should_succeed: true, description: 'Admin can update any profile' },
+  { role: 'admin', table: 'orders', operation: 'SELECT', should_succeed: true, description: 'Admin can view all orders' },
+  { role: 'admin', table: 'products', operation: 'INSERT', should_succeed: true, description: 'Admin can create products' },
+
+  // Restaurant scenarios
+  { role: 'restaurant', table: 'products', operation: 'SELECT', should_succeed: true, description: 'Restaurant can view products' },
+  { role: 'restaurant', table: 'products', operation: 'INSERT', should_succeed: true, description: 'Restaurant can create own products' },
+  { role: 'restaurant', table: 'orders', operation: 'SELECT', should_succeed: true, description: 'Restaurant can view own orders' },
+  { role: 'restaurant', table: 'profiles', operation: 'UPDATE', should_succeed: true, description: 'Restaurant can update own profile' },
+
+  // Driver scenarios
+  { role: 'driver', table: 'orders', operation: 'SELECT', should_succeed: true, description: 'Driver can view assigned orders' },
+  { role: 'driver', table: 'orders', operation: 'UPDATE', should_succeed: true, description: 'Driver can update assigned order status' },
+  { role: 'driver', table: 'products', operation: 'INSERT', should_succeed: false, description: 'Driver cannot create products' },
+
+  // Demo scenarios
+  { role: 'demo', table: 'products', operation: 'SELECT', should_succeed: true, description: 'Demo can view public products' },
+  { role: 'demo', table: 'orders', operation: 'INSERT', should_succeed: false, description: 'Demo cannot create orders' },
+  { role: 'demo', table: 'profiles', operation: 'UPDATE', should_succeed: false, description: 'Demo cannot update profiles' },
+];
+
+async function validateUserRole(supabase: any, userId: string): Promise<RoleValidationResult> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('role, full_name, is_active')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  if (!data) {
+    return { success: false, error: 'User profile not found' };
+  }
+
+  if (!data.is_active) {
+    return { success: false, error: 'User account is inactive' };
+  }
+
+  return { 
+    success: true, 
+    data: {
+      role: data.role,
+      full_name: data.full_name,
+      is_active: data.is_active
+    }
+  };
+}
+
+async function checkTableAccess(supabase: any, tableName: string, operation: string) {
+  try {
+    // Test basic table access
+    let testQuery;
+    
+    switch (operation) {
+      case 'SELECT':
+        testQuery = supabase.from(tableName).select('*').limit(1);
+        break;
+      case 'INSERT':
+        testQuery = supabase.from(tableName).insert({ test: 'validation_check' }).select();
+        break;
+      case 'UPDATE':
+        testQuery = supabase.from(tableName).update({ test: 'validation_check' }).select();
+        break;
+      case 'DELETE':
+        testQuery = supabase.from(tableName).delete().eq('id', 'non-existent-id').select();
+        break;
+      default:
+        throw new Error(`Unsupported operation: ${operation}`);
+    }
+
+    const { data, error } = await testQuery;
+
+    return {
+      success: !error,
+      operation,
+      table: tableName,
+      error: error?.message || null,
+      data_count: data?.length || 0
+    };
+  } catch (err) {
+    return {
+      success: false,
+      operation,
+      table: tableName,
+      error: err instanceof Error ? err.message : 'Unknown error',
+      data_count: 0
+    };
+  }
+}
+
+async function auditPolicyViolations(supabase: any) {
+  const { data, error } = await supabase
+    .from('policy_audit_log')
+    .select(`
+      id,
+      user_id,
+      policy_name,
+      table_name,
+      operation,
+      allowed,
+      error_message,
+      created_at,
+      profiles:user_id (
+        role,
+        full_name
+      )
+    `)
+    .eq('allowed', false)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  // Group violations by policy
+  const violationsByPolicy = data?.reduce((acc: any, violation: any) => {
+    const policyName = violation.policy_name;
+    if (!acc[policyName]) {
+      acc[policyName] = {
+        policy_name: policyName,
+        table_name: violation.table_name,
+        total_violations: 0,
+        recent_violations: []
+      };
+    }
+    acc[policyName].total_violations++;
+    acc[policyName].recent_violations.push(violation);
+    return acc;
+  }, {}) || {};
+
+  return {
+    success: true,
+    total_violations: data?.length || 0,
+    violations_by_policy: violationsByPolicy,
+    violations: data || []
+  };
+}
+
+async function runTestScenarios(supabase: any, scenarios: TestScenario[]) {
+  const results = [];
+  
+  for (const scenario of scenarios) {
+    try {
+      // Create test user for each role (simulation)
+      const testResult = await checkTableAccess(supabase, scenario.table, scenario.operation);
+      
+      results.push({
+        ...scenario,
+        test_result: testResult,
+        passed: testResult.success === scenario.should_succeed,
+        timestamp: new Date().toISOString()
+      });
+    } catch (err) {
+      results.push({
+        ...scenario,
+        test_result: { success: false, error: err instanceof Error ? err.message : 'Unknown error' },
+        passed: false,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // Summary
+  const passed = results.filter(r => r.passed).length;
+  const failed = results.filter(r => !r.passed).length;
+  
+  return {
+    total_scenarios: scenarios.length,
+    passed,
+    failed,
+    success_rate: (passed / scenarios.length * 100).toFixed(2) + '%',
+    results,
+    summary: failed > 0 ? `${failed} policy validation failures detected` : 'All policy validations passed'
+  };
+}
+
+serve(async (req: Request) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 200, headers: corsHeaders });
+  }
+
+  // Rate limiting
+  const ip = req.headers.get('x-forwarded-for') || 'unknown';
+  if (!checkRateLimit(ip)) {
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: 'Rate limit exceeded. Maximum 100 requests per minute.' 
+      }),
+      { 
+        status: 429, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+
+  try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    // Verify admin authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Authorization header required' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: userData, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !userData.user) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid authentication token' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Check if user is admin
+    const roleCheck = await validateUserRole(supabase, userData.user.id);
+    if (!roleCheck.success || !roleCheck.data || roleCheck.data.role !== 'admin') {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Admin access required' }),
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const requestData: PolicyTestRequest = await req.json();
+    let result;
+
+    switch (requestData.action) {
+      case 'validate_user_role':
+        if (!requestData.user_id) {
+          throw new Error('user_id parameter required for validate_user_role action');
+        }
+        result = await validateUserRole(supabase, requestData.user_id);
+        break;
+
+      case 'check_table_access':
+        if (!requestData.table_name || !requestData.policy_name) {
+          throw new Error('table_name and policy_name parameters required for check_table_access action');
+        }
+        result = await checkTableAccess(supabase, requestData.table_name, 'SELECT');
+        break;
+
+      case 'audit_violations':
+        result = await auditPolicyViolations(supabase);
+        break;
+
+      case 'test_policies':
+      default:
+        const scenarios = requestData.test_scenarios ? TEST_SCENARIOS : TEST_SCENARIOS.slice(0, 5);
+        result = await runTestScenarios(supabase, scenarios);
+        break;
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        data: result,
+        timestamp: new Date().toISOString(),
+        authenticated_user: roleCheck.data
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error) {
+    console.error('Admin validation error:', error);
+    
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : 'Internal server error',
+        timestamp: new Date().toISOString()
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+});

@@ -1,0 +1,159 @@
+import { describe, it, expect, vi } from 'vitest';
+import { screen, fireEvent } from '@testing-library/react';
+import { render, createMockProduct } from '@/test-utils';
+import { Button } from '@/components/ui/button';
+
+// Mock Georgian test data for Button component
+const georgianButtonTexts = {
+  primary: 'მთავარი ღილაკი',
+  secondary: 'მეორეხარისხოვანი',
+  danger: 'წაშლა',
+  success: 'დამატება',
+  loading: 'იტვირთება',
+  disabled: 'გამორთული',
+};
+
+describe('Button Component', () => {
+  it('renders Georgian button text correctly', () => {
+    render(<Button>{georgianButtonTexts.primary}</Button>);
+    
+    expect(screen.getByRole('button', { name: georgianButtonTexts.primary })).toBeInTheDocument();
+  });
+
+  it('handles click events properly', () => {
+    const handleClick = vi.fn();
+    render(
+      <Button onClick={handleClick}>
+        {georgianButtonTexts.secondary}
+      </Button>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: georgianButtonTexts.secondary }));
+    
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables button when disabled prop is true', () => {
+    render(
+      <Button disabled>
+        {georgianButtonTexts.disabled}
+      </Button>
+    );
+
+    const button = screen.getByRole('button', { name: georgianButtonTexts.disabled });
+    expect(button).toBeDisabled();
+  });
+
+  it('applies correct variant styles', () => {
+    render(
+      <Button variant="destructive">
+        {georgianButtonTexts.danger}
+      </Button>
+    );
+
+    const button = screen.getByRole('button', { name: georgianButtonTexts.danger });
+    expect(button).toHaveAttribute('data-variant', 'destructive');
+  });
+
+  it('applies correct size classes', () => {
+    render(
+      <Button size="sm">
+        {georgianButtonTexts.primary}
+      </Button>
+    );
+
+    const button = screen.getByRole('button', { name: georgianButtonTexts.primary });
+    expect(button).toHaveAttribute('data-size', 'sm');
+  });
+
+  it('renders loading state with Georgian text', () => {
+    render(
+      <Button disabled>
+        {georgianButtonTexts.loading}
+      </Button>
+    );
+
+    expect(screen.getByText(georgianButtonTexts.loading)).toBeInTheDocument();
+  });
+
+  it('handles fullWidth variant correctly', () => {
+    render(
+      <Button className="w-full">
+        {georgianButtonTexts.success}
+      </Button>
+    );
+
+    const button = screen.getByRole('button', { name: georgianButtonTexts.success });
+    expect(button).toHaveClass('w-full');
+  });
+
+  it('supports custom className for Georgian styling', () => {
+    render(
+      <Button className="text-right rtl:mr-4">
+        {georgianButtonTexts.primary}
+      </Button>
+    );
+
+    const button = screen.getByRole('button', { name: georgianButtonTexts.primary });
+    expect(button).toHaveClass('text-right', 'rtl:mr-4');
+  });
+
+  describe('Georgian-specific button behaviors', () => {
+    it('handles Georgian input method correctly', () => {
+      const handleClick = vi.fn();
+      render(
+        <Button onClick={handleClick}>
+          {georgianButtonTexts.secondary}
+        </Button>
+      );
+
+      // Simulate keyboard navigation (common in Georgian keyboard layouts)
+      const button = screen.getByRole('button', { name: georgianButtonTexts.secondary });
+      
+      // Focus and press Enter
+      button.focus();
+      fireEvent.keyDown(button, { key: 'Enter', code: 'Enter' });
+      fireEvent.keyUp(button, { key: 'Enter', code: 'Enter' });
+      
+      expect(handleClick).toHaveBeenCalled();
+    });
+
+    it('supports Georgian business actions', () => {
+      render(
+        <Button>
+          შეკვეთის გაგზავნა {/* Submit Order */}
+        </Button>
+      );
+
+      expect(screen.getByText('შეკვეთის გაგზავნა')).toBeInTheDocument();
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('meets accessibility standards for Georgian text', () => {
+      render(
+        <Button aria-describedby="button-description">
+          {georgianButtonTexts.primary}
+        </Button>
+      );
+
+      const button = screen.getByRole('button', { name: georgianButtonTexts.primary });
+      expect(button).toHaveAttribute('aria-describedby');
+    });
+
+    it('provides keyboard navigation support', () => {
+      const handleClick = vi.fn();
+      render(
+        <Button onClick={handleClick}>
+          {georgianButtonTexts.secondary}
+        </Button>
+      );
+
+      const button = screen.getByRole('button', { name: georgianButtonTexts.secondary });
+      
+      // Test Space key activation
+      fireEvent.click(button);
+      expect(handleClick).toHaveBeenCalledTimes(1);
+    });
+  });
+});

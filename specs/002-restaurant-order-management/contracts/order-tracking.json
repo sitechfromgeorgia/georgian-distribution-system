@@ -1,0 +1,287 @@
+{
+  "contract": "Order Tracking API",
+  "version": "1.0.0",
+  "description": "Real-time order status tracking and order history APIs for restaurants",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/orders/{orderId}/status",
+      "description": "Get current order status and tracking information"
+    },
+    {
+      "method": "GET", 
+      "path": "/api/orders/history",
+      "description": "Get order history with pagination and filtering"
+    },
+    {
+      "method": "GET",
+      "path": "/api/orders/{orderId}/comments",
+      "description": "Get order comments and communication thread"
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders/{orderId}/comments", 
+      "description": "Add comment to order for communication"
+    }
+  ],
+  "performance": {
+    "status_tracking": "<100ms p95",
+    "history_pagination": "<200ms p95",
+    "comments_load": "<150ms p95"
+  },
+  "authentication": {
+    "required": true,
+    "role": "restaurant"
+  },
+  "contracts": {
+    "get_order_status": {
+      "endpoint": "GET /api/orders/{orderId}/status",
+      "response": {
+        "type": "object",
+        "required": ["order_id", "status", "status_history"],
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "confirmed", "priced", "out_for_delivery", "delivered", "received", "cancelled"]
+          },
+          "status_history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["status", "timestamp"],
+              "properties": {
+                "status": {
+                  "type": "string"
+                },
+                "timestamp": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "changed_by": {
+                  "type": "string",
+                  "format": "uuid",
+                  "description": "User who made the change"
+                }
+              }
+            }
+          },
+          "current_driver": {
+            "type": "object",
+            "properties": {
+              "id": {"type": "string", "format": "uuid"},
+              "name": {"type": "string"},
+              "phone": {"type": "string"},
+              "estimated_arrival": {"type": "string", "format": "date-time"}
+            }
+          },
+          "estimated_delivery": {
+            "type": "string", 
+            "format": "date-time"
+          },
+          "delivery_address": {
+            "type": "string"
+          },
+          "special_instructions": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "order_id": "123e4567-e89b-12d3-a456-426614174002",
+          "status": "out_for_delivery",
+          "status_history": [
+            {"status": "pending", "timestamp": "2025-11-01T09:49:27.539Z", "changed_by": "restaurant-user"},
+            {"status": "confirmed", "timestamp": "2025-11-01T10:15:30.000Z", "changed_by": "admin-user"},
+            {"status": "priced", "timestamp": "2025-11-01T11:30:15.000Z", "changed_by": "admin-user"},
+            {"status": "out_for_delivery", "timestamp": "2025-11-01T14:45:00.000Z", "changed_by": "driver-user"}
+          ],
+          "current_driver": {
+            "id": "driver-uuid",
+            "name": "გიორგი პეტრიაშვილი",
+            "phone": "+995555123456",
+            "estimated_arrival": "2025-11-01T16:30:00.000Z"
+          },
+          "estimated_delivery": "2025-11-01T17:00:00.000Z",
+          "delivery_address": "თბილისი, საბურთალო, ვაჟა-ფშაველას ქუჩა 15",
+          "special_instructions": "დაგვირეკეთ ჩამოსვლამდე 30 წუთით ადრე"
+        }
+      }
+    },
+    "get_order_history": {
+      "endpoint": "GET /api/orders/history",
+      "query_parameters": {
+        "page": {
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        },
+        "limit": {
+          "type": "integer", 
+          "default": 20,
+          "maximum": 100
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "confirmed", "priced", "out_for_delivery", "delivered", "received", "cancelled"]
+        },
+        "start_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "end_date": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "response": {
+        "type": "object",
+        "required": ["orders", "pagination"],
+        "properties": {
+          "orders": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["order_id", "created_at", "status", "items_count", "delivery_address"],
+              "properties": {
+                "order_id": {"type": "string", "format": "uuid"},
+                "created_at": {"type": "string", "format": "date-time"},
+                "status": {"type": "string"},
+                "total_amount": {
+                  "type": "number",
+                  "description": "Only for completed orders"
+                },
+                "items_count": {"type": "integer"},
+                "delivery_address": {"type": "string"},
+                "estimated_delivery": {"type": "string", "format": "date-time"}
+              }
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {"type": "integer"},
+              "limit": {"type": "integer"},
+              "total": {"type": "integer"},
+              "pages": {"type": "integer"}
+            }
+          }
+        }
+      }
+    },
+    "get_order_comments": {
+      "endpoint": "GET /api/orders/{orderId}/comments",
+      "response": {
+        "type": "object",
+        "required": ["comments"],
+        "properties": {
+          "comments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "author_name", "comment_text", "comment_type", "created_at"],
+              "properties": {
+                "id": {"type": "string", "format": "uuid"},
+                "author_id": {"type": "string", "format": "uuid"},
+                "author_name": {"type": "string"},
+                "author_role": {"type": "string"},
+                "comment_text": {"type": "string"},
+                "comment_type": {"type": "string", "enum": ["general", "issue", "praise", "question"]},
+                "is_internal": {"type": "boolean"},
+                "created_at": {"type": "string", "format": "date-time"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "add_order_comment": {
+      "endpoint": "POST /api/orders/{orderId}/comments",
+      "request_body": {
+        "type": "object",
+        "required": ["comment_text"],
+        "properties": {
+          "comment_text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "comment_type": {
+            "type": "string",
+            "enum": ["general", "issue", "praise", "question"],
+            "default": "general"
+          }
+        }
+      },
+      "response": {
+        "type": "object",
+        "required": ["id", "comment_text", "comment_type", "created_at"],
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "author_id": {"type": "string", "format": "uuid"},
+          "comment_text": {"type": "string"},
+          "comment_type": {"type": "string"},
+          "created_at": {"type": "string", "format": "date-time"}
+        }
+      }
+    }
+  },
+  "errors": {
+    "404": {
+      "description": "Order not found or access denied"
+    },
+    "403": {
+      "description": "Cannot access order (wrong restaurant)"
+    }
+  },
+  "georgian_localization": {
+    "status_labels": {
+      "pending": "მოლოდინში",
+      "confirmed": "დადასტურებული",
+      "priced": "ფასდაუდებელი", 
+      "out_for_delivery": "მიწოდებაზე",
+      "delivered": "მიწოდებული",
+      "received": "მიღებული",
+      "cancelled": "გაუქმებული"
+    },
+    "comment_types": {
+      "general": "ზოგადი",
+      "issue": "პრობლემა",
+      "praise": "მადლობა",
+      "question": "კითხვა"
+    },
+    "timezone": "Asia/Tbilisi",
+    "date_format": "DD/MM/YYYY HH:mm"
+  },
+  "real_time_channels": {
+    "order_status_changes": {
+      "channel": "order-status-{orderId}",
+      "payload": {
+        "order_id": "uuid",
+        "status": "string",
+        "previous_status": "string?",
+        "driver_id": "uuid?",
+        "estimated_delivery": "ISO string?",
+        "timestamp": "ISO string"
+      }
+    },
+    "order_comments": {
+      "channel": "order-comments-{orderId}",
+      "payload": {
+        "order_id": "uuid",
+        "comment_id": "uuid",
+        "author_role": "string",
+        "comment_type": "string",
+        "comment_text": "string",
+        "timestamp": "ISO string"
+      }
+    }
+  },
+  "validation": {
+    "status_tracking": "frontend/src/lib/validators/restaurant/tracking.ts",
+    "order_history": "frontend/src/lib/validators/restaurant/history.ts",
+    "order_comments": "frontend/src/lib/validators/restaurant/comments.ts"
+  }
+}

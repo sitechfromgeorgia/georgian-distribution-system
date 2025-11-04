@@ -1,0 +1,14 @@
+/**
+ * @deprecated This file is deprecated and will be removed in Phase 2.
+ * Please use imports from '@/lib/supabase' (which points to /supabase/index.ts) instead.
+ *
+ * Migration guide:
+ *   OLD: import { supabase } from '@/lib/supabase.ts'
+ *   NEW: import { createBrowserClient } from '@/lib/supabase'
+ *        const supabase = createBrowserClient()
+ */
+
+// Re-export only browser client to avoid importing server-side code in client components
+// This file will be deleted in Phase 2
+export { createBrowserClient } from './supabase/client'
+export type { Database } from '@/types/database'
