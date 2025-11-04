@@ -20,8 +20,8 @@
     "alwaysStrict": true,
 
     // Additional Checks
-    "noUnusedLocals": false, // Temporarily disabled - TODO: Fix unused variables
-    "noUnusedParameters": false, // Temporarily disabled - TODO: Fix unused parameters
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
