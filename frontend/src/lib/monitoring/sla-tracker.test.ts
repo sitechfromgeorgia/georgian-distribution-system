@@ -3,14 +3,38 @@
  * Demonstrates functionality and validates the implementation
  */
 
-import { 
-  slaTracker, 
-  recordAPIRequest, 
-  getSLAReport, 
+import { describe, it, expect } from 'vitest'
+import {
+  slaTracker,
+  recordAPIRequest,
+  getSLAReport,
   configureSLA,
   type SLAReport,
-  type EndpointConfig 
+  type EndpointConfig
 } from './sla-tracker';
+
+// Vitest test suite
+describe('sla-tracker module', () => {
+  it('should import without throwing', async () => {
+    const mod = await import('./sla-tracker')
+    expect(mod).toBeDefined()
+    expect(mod.slaTracker).toBeDefined()
+    expect(mod.recordAPIRequest).toBeDefined()
+    expect(mod.getSLAReport).toBeDefined()
+  })
+
+  it('should allow recording API requests', () => {
+    expect(() => {
+      recordAPIRequest('/api/test', 'GET', 100, 200)
+    }).not.toThrow()
+  })
+
+  it('should have slaTracker with required methods', () => {
+    expect(typeof slaTracker.getAllSLAReports).toBe('function')
+    expect(typeof slaTracker.getStatistics).toBe('function')
+  })
+})
+
 
 // Mock some API requests for testing
 function generateTestData(): void {
