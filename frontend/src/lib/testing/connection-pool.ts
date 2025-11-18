@@ -372,7 +372,7 @@ class ConnectionPoolManager {
             .from('products')
             .select('id')
             .limit(1)
-            .then(({ error }) => {
+            .then(({ error }: { error: any }) => {
               if (error) {
                 logger.warn('Connection pool metric query failed:', error)
               }
