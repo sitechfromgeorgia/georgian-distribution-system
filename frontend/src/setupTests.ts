@@ -130,10 +130,7 @@ vi.mock('@tanstack/react-query', () => ({
   useQueryClient: vi.fn(),
 }))
 
-// Mock Zustand
-vi.mock('zustand', () => ({
-  create: vi.fn(() => vi.fn()),
-}))
+
 
 // Mock react-hook-form
 vi.mock('react-hook-form', () => ({
@@ -212,31 +209,33 @@ global.ResizeObserver = vi.fn(() => ({
 })) as any
 
 // Mock window.matchMedia
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation((query) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-})
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  })
 
-// Mock window.URL.createObjectURL
-Object.defineProperty(URL, 'createObjectURL', {
-  writable: true,
-  value: vi.fn(() => 'blob:test-url'),
-})
+  // Mock window.URL.createObjectURL
+  Object.defineProperty(URL, 'createObjectURL', {
+    writable: true,
+    value: vi.fn(() => 'blob:test-url'),
+  })
 
-// Mock window.URL.revokeObjectURL
-Object.defineProperty(URL, 'revokeObjectURL', {
-  writable: true,
-  value: vi.fn(),
-})
+  // Mock window.URL.revokeObjectURL
+  Object.defineProperty(URL, 'revokeObjectURL', {
+    writable: true,
+    value: vi.fn(),
+  })
+}
 
 // Setup cleanup
 afterEach(() => {

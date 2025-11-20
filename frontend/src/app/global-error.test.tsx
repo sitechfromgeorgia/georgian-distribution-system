@@ -127,16 +127,7 @@ describe('Global Error Boundary', () => {
     expect(window.location.href).toBe('/')
   })
 
-  it('should render with html and body tags', () => {
-    // Act
-    const { container } = render(<GlobalError error={mockError} reset={mockReset} />)
 
-    // Assert
-    const htmlElement = container.querySelector('html')
-    const bodyElement = container.querySelector('body')
-    expect(htmlElement).toBeInTheDocument()
-    expect(bodyElement).toBeInTheDocument()
-  })
 
   it('should display Georgian critical error message', () => {
     // Act

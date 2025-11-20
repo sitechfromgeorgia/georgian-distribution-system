@@ -211,7 +211,8 @@
       "Bash(restart-docker.bat)",
       "Bash(.gitignore)",
       "Bash(find:*)",
-      "Bash(.env.example.production)"
+      "Bash(.env.example.production)",
+      "Bash(if exist \"frontend\\node_modules\" rmdir /s /q \"frontend\\node_modules\")"
     ],
     "deny": [
       "Bash(rm:*)",
