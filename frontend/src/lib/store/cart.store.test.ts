@@ -44,7 +44,8 @@ describe('Cart Store', () => {
         })
 
         expect(useCartStore.getState().items).toHaveLength(1)
-        expect(useCartStore.getState().items[0].quantity).toBe(3)
+        const item = useCartStore.getState().items[0]
+        expect(item?.quantity).toBe(3)
     })
 
     it('should remove item from cart', () => {
@@ -70,7 +71,8 @@ describe('Cart Store', () => {
         })
 
         useCartStore.getState().updateQuantity('1', 5)
-        expect(useCartStore.getState().items[0].quantity).toBe(5)
+        const updatedItem = useCartStore.getState().items[0]
+        expect(updatedItem?.quantity).toBe(5)
     })
 
     it('should calculate total price', () => {
