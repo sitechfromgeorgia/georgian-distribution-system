@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import GlobalError from './global-error'
+import { GlobalErrorContent } from './global-error'
 
 // Mock the logger
 vi.mock('@/lib/logger', () => ({
@@ -31,7 +31,7 @@ describe('Global Error Boundary', () => {
 
   it('should render global error boundary', () => {
     // Act
-    render(<GlobalError error={mockError} reset={mockReset} />)
+    render(<GlobalErrorContent error={mockError} reset={mockReset} />)
 
     // Assert
     expect(screen.getByText('⚠️ კრიტიკული შეცდომა')).toBeInTheDocument()
@@ -47,7 +47,7 @@ describe('Global Error Boundary', () => {
     })
 
     // Act
-    render(<GlobalError error={mockError} reset={mockReset} />)
+    render(<GlobalErrorContent error={mockError} reset={mockReset} />)
 
     // Assert
     expect(screen.getByText('Critical error')).toBeInTheDocument()
@@ -70,7 +70,7 @@ describe('Global Error Boundary', () => {
     })
 
     // Act
-    render(<GlobalError error={mockError} reset={mockReset} />)
+    render(<GlobalErrorContent error={mockError} reset={mockReset} />)
 
     // Assert
     expect(screen.queryByText('Critical error')).not.toBeInTheDocument()
@@ -94,7 +94,7 @@ describe('Global Error Boundary', () => {
     const errorWithDigest = Object.assign(new Error('Test'), { digest: 'xyz789' })
 
     // Act
-    render(<GlobalError error={errorWithDigest} reset={mockReset} />)
+    render(<GlobalErrorContent error={errorWithDigest} reset={mockReset} />)
 
     // Assert
     expect(screen.getByText(/Error ID: xyz789/)).toBeInTheDocument()
@@ -109,7 +109,7 @@ describe('Global Error Boundary', () => {
 
   it('should call reset when "სცადე თავიდან" button is clicked', () => {
     // Act
-    render(<GlobalError error={mockError} reset={mockReset} />)
+    render(<GlobalErrorContent error={mockError} reset={mockReset} />)
     const resetButton = screen.getByText('სცადე თავიდან')
     fireEvent.click(resetButton)
 
@@ -119,7 +119,7 @@ describe('Global Error Boundary', () => {
 
   it('should navigate to home when "მთავარი გვერდი" button is clicked', () => {
     // Act
-    render(<GlobalError error={mockError} reset={mockReset} />)
+    render(<GlobalErrorContent error={mockError} reset={mockReset} />)
     const homeButton = screen.getByText('მთავარი გვერდი')
     fireEvent.click(homeButton)
 
@@ -131,7 +131,7 @@ describe('Global Error Boundary', () => {
 
   it('should display Georgian critical error message', () => {
     // Act
-    render(<GlobalError error={mockError} reset={mockReset} />)
+    render(<GlobalErrorContent error={mockError} reset={mockReset} />)
 
     // Assert
     expect(
@@ -141,7 +141,7 @@ describe('Global Error Boundary', () => {
 
   it('should use inline styles', () => {
     // Act
-    const { container } = render(<GlobalError error={mockError} reset={mockReset} />)
+    const { container } = render(<GlobalErrorContent error={mockError} reset={mockReset} />)
 
     // Assert - Check that styled elements exist
     const styledDiv = container.querySelector('div[style]')
