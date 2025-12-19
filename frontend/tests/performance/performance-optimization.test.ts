@@ -277,9 +277,10 @@ describe('Georgian Distribution System Performance Optimizations', () => {
       const optimized = gdsOptimizations.optimizeImages(georgianFoodItems);
       
       expect(optimized).toHaveLength(2);
-      expect(optimized[0]).toHaveProperty('optimizedImagePath');
-      expect(optimized[0].optimizedImagePath).toContain('format=webp');
-      expect(optimized[0].optimizedImagePath).toContain('geo=true');
+      const firstOptimized = optimized[0];
+      expect(firstOptimized).toHaveProperty('optimizedImagePath');
+      expect(firstOptimized?.optimizedImagePath).toContain('format=webp');
+      expect(firstOptimized?.optimizedImagePath).toContain('geo=true');
     });
 
     it('should optimize Georgian order processing', async () => {
@@ -295,9 +296,10 @@ describe('Georgian Distribution System Performance Optimizations', () => {
       const optimized = gdsOptimizations.optimizeOrders(georgianOrders);
       
       expect(optimized).toHaveLength(1);
-      expect(optimized[0]).toHaveProperty('batchSize');
-      expect(optimized[0]).toHaveProperty('georgianTimeZones');
-      expect(optimized[0].georgianTimeZones).toContain('Europe/Tbilisi');
+      const firstOrder = optimized[0];
+      expect(firstOrder).toHaveProperty('batchSize');
+      expect(firstOrder).toHaveProperty('georgianTimeZones');
+      expect(firstOrder?.georgianTimeZones).toContain('Europe/Tbilisi');
     });
 
     it('should optimize Georgian user interface', async () => {
@@ -484,7 +486,7 @@ describe('Georgian Distribution System Performance Optimizations', () => {
 
       // 1. Optimize Georgian images
       const optimized = gdsOptimizations.optimizeImages(georgianFoodItems);
-      expect(optimized[0].optimizedImagePath).toBeDefined();
+      expect(optimized[0]?.optimizedImagePath).toBeDefined();
 
       // 2. Cache optimized data
       await georgianDistributionBrowserCache.set('optimized-georgian-products', optimized, 'products');
@@ -673,7 +675,7 @@ async function testIntegrationPerformance() {
   return {
     workflowTime: endTime - startTime,
     dataIntegrity: JSON.stringify(optimized) === JSON.stringify(cached),
-    georgianOptimizationApplied: optimized[0].optimizedImagePath !== undefined
+    georgianOptimizationApplied: optimized[0]?.optimizedImagePath !== undefined
   };
 }
 
